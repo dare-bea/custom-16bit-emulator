@@ -191,7 +191,7 @@ impl From<Instruction> for Vec<u8> {
             JumpIf(cond, address) => vec![0x80 | cond as u8, address as u8, (address >> 8) as u8],
             JumpRelativeIf(cond, offset) => {
                 vec![0x90 | cond as u8, offset as u8, (offset >> 8) as u8]
-            },
+            }
 
             Push => vec![0xA0],
             PushPC => vec![0xA1],
@@ -217,7 +217,9 @@ pub enum InstructionError {
 }
 
 impl Instruction {
-    pub fn from_iter<'a>(mut iter: impl Iterator<Item = &'a u8>) -> Result<(Self, u32), InstructionError> {
+    pub fn from_iter<'a>(
+        mut iter: impl Iterator<Item = &'a u8>,
+    ) -> Result<(Self, u32), InstructionError> {
         use Instruction::*;
         let mut count = 0u32;
 
@@ -241,7 +243,9 @@ impl Instruction {
             0x00..=0x03 => LoadFrom(register),
             0x04..=0x07 => StoreTo(register),
             0x08..=0x0B => Zero(register),
-            0x0C..=0x0F => LoadImmediate(register, u16::from_le_bytes([next_byte()?, next_byte()?])),
+            0x0C..=0x0F => {
+                LoadImmediate(register, u16::from_le_bytes([next_byte()?, next_byte()?]))
+            }
             0x10 => LoadAddress(u16::from_le_bytes([next_byte()?, next_byte()?])),
             0x11 => LoadIndirect,
             0x12 => LoadRelative(u16::from_le_bytes([next_byte()?, next_byte()?])),
@@ -296,7 +300,7 @@ impl Instruction {
             0xE0..=0xEF => Clear(opcode & 0xF),
             0xF0..=0xFF => Set(opcode & 0xF),
 
-            _ => unimplemented!(),
+            _ => return Err(InstructionError::InvalidOpcode(opcode)),
         };
         Ok((result, count))
     }
@@ -450,16 +454,18 @@ impl Emulator {
             GeneralPurposeRegister::D => &mut self.d,
         }
     }
-    
+
     pub fn advance(&mut self) {
-        match Instruction::from_iter(self.memory.iter().cycle()) {
+        match Instruction::from_iter(self.memory.iter().cycle().take(self.pc as usize)) {
             Ok((instruction, count)) => {
                 self.pc = self.pc.wrapping_add(count as u16);
                 self.execute(instruction);
-            },
+            }
             Err(InstructionError::EndOfInput) => {
-                unreachable!("Should not be able to reach end of input since we are repeating the memory")
-            },
+                unreachable!(
+                    "Should not be able to reach end of input since we are repeating the memory"
+                )
+            }
             Err(InstructionError::InvalidOpcode(opcode)) => {
                 panic!("Invalid opcode: {}", opcode);
             }
@@ -468,23 +474,62 @@ impl Emulator {
 
     pub fn execute(&mut self, instruction: Instruction) {
         match instruction {
-            Instruction::LoadFrom(reg) => { self.a = self.register(reg) }
-            Instruction::StoreTo(reg) => { *self.mut_register(reg) = self.a }
-            Instruction::Zero(reg) => { *self.mut_register(reg) = 0 }
-            Instruction::LoadImmediate(reg, value) => { *self.mut_register(reg) = value }
-            Instruction::LoadAddress(address) => { self.a = u16::from_le_bytes([self.memory[address as usize], self.memory[address as usize + 1]]) }
-            Instruction::LoadIndirect => { self.a = u16::from_le_bytes([self.memory[self.b as usize], self.memory[self.b as usize + 1]]) }
-            Instruction::LoadRelative(offset) => { self.a = u16::from_le_bytes([self.memory[(self.b + offset) as usize], self.memory[(self.b + offset) as usize + 1]]) }
-            Instruction::LoadStackRelative(offset) => { self.a = u16::from_le_bytes([self.memory[(self.sp + offset) as usize], self.memory[(self.sp + offset) as usize + 1]]) }
-            Instruction::StoreAddress(address) => { self.memory[address as usize] = self.a as u8; self.memory[address as usize + 1] = (self.a >> 8) as u8 }
-            Instruction::StoreIndirect => { self.memory[self.b as usize] = self.a as u8; self.memory[self.b as usize + 1] = (self.a >> 8) as u8 }
-            Instruction::StoreRelative(offset) => { self.memory[(self.b + offset) as usize] = self.a as u8; self.memory[(self.b + offset) as usize + 1] = (self.a >> 8) as u8 }
-            Instruction::StoreStackRelative(offset) => { self.memory[(self.sp + offset) as usize] = self.a as u8; self.memory[(self.sp + offset) as usize + 1] = (self.a >> 8) as u8 }
-            Instruction::StoreByteAddress(address) => { self.memory[address as usize] = self.a as u8 }
-            Instruction::StoreByteIndirect => { self.memory[self.b as usize] = self.a as u8 }
-            Instruction::StoreByteRelative(offset) => { self.memory[(self.b + offset) as usize] = self.a as u8 }
-            Instruction::StoreByteStackRelative(offset) => { self.memory[(self.sp + offset) as usize] = self.a as u8 }
-            Instruction::Not => { self.a = !self.a; self.set_operation_flags(self.a); }
+            Instruction::LoadFrom(reg) => self.a = self.register(reg),
+            Instruction::StoreTo(reg) => *self.mut_register(reg) = self.a,
+            Instruction::Zero(reg) => *self.mut_register(reg) = 0,
+            Instruction::LoadImmediate(reg, value) => *self.mut_register(reg) = value,
+            Instruction::LoadAddress(address) => {
+                self.a = u16::from_le_bytes([
+                    self.memory[address as usize],
+                    self.memory[address as usize + 1],
+                ])
+            }
+            Instruction::LoadIndirect => {
+                self.a = u16::from_le_bytes([
+                    self.memory[self.b as usize],
+                    self.memory[self.b as usize + 1],
+                ])
+            }
+            Instruction::LoadRelative(offset) => {
+                self.a = u16::from_le_bytes([
+                    self.memory[(self.b + offset) as usize],
+                    self.memory[(self.b + offset) as usize + 1],
+                ])
+            }
+            Instruction::LoadStackRelative(offset) => {
+                self.a = u16::from_le_bytes([
+                    self.memory[(self.sp + offset) as usize],
+                    self.memory[(self.sp + offset) as usize + 1],
+                ])
+            }
+            Instruction::StoreAddress(address) => {
+                self.memory[address as usize] = self.a as u8;
+                self.memory[address as usize + 1] = (self.a >> 8) as u8
+            }
+            Instruction::StoreIndirect => {
+                self.memory[self.b as usize] = self.a as u8;
+                self.memory[self.b as usize + 1] = (self.a >> 8) as u8
+            }
+            Instruction::StoreRelative(offset) => {
+                self.memory[(self.b + offset) as usize] = self.a as u8;
+                self.memory[(self.b + offset) as usize + 1] = (self.a >> 8) as u8
+            }
+            Instruction::StoreStackRelative(offset) => {
+                self.memory[(self.sp + offset) as usize] = self.a as u8;
+                self.memory[(self.sp + offset) as usize + 1] = (self.a >> 8) as u8
+            }
+            Instruction::StoreByteAddress(address) => self.memory[address as usize] = self.a as u8,
+            Instruction::StoreByteIndirect => self.memory[self.b as usize] = self.a as u8,
+            Instruction::StoreByteRelative(offset) => {
+                self.memory[(self.b + offset) as usize] = self.a as u8
+            }
+            Instruction::StoreByteStackRelative(offset) => {
+                self.memory[(self.sp + offset) as usize] = self.a as u8
+            }
+            Instruction::Not => {
+                self.a = !self.a;
+                self.set_operation_flags(self.a);
+            }
             Instruction::Increment => {
                 let (result, carry) = self.a.overflowing_add(1);
                 let overflow = (self.a as i16).overflowing_add(1).1;
@@ -492,115 +537,190 @@ impl Emulator {
                 self.set_operation_flags(self.a);
                 self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
             }
-             Instruction::Decrement => {
-                 let (result, carry) = self.a.overflowing_sub(1);
-                 let overflow = (self.a as i16).overflowing_sub(1).1;
-                 self.a = result;
-                 self.set_operation_flags(self.a);
-                 self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
-             }
-             Instruction::And(reg) => { self.a &= self.register(reg); self.set_operation_flags(self.a); }
-             Instruction::Or(reg) => { self.a |= self.register(reg); self.set_operation_flags(self.a); }
-             Instruction::Xor(reg) => { self.a ^= self.register(reg); self.set_operation_flags(self.a); }
-             Instruction::LeftShift(reg) => {
-                 let shift = self.register(reg) as u32;
-                 let carry = (self.a as u32) >> (16 - shift);
-                 self.a <<= shift;
-                 self.set_operation_flags(self.a);
-                 self.flags |= (carry as u16) << flag::CARRY;
-             }
-             Instruction::RightShift(reg) => {
-                 let shift = self.register(reg) as u32;
-                 let carry = (self.a as u32) >> (shift - 1);
-                 self.a >>= shift;
-                 self.set_operation_flags(self.a);
-                 self.flags |= (carry as u16) << flag::CARRY;
-             }
-             Instruction::Add(reg) => {
-                 let (result, carry) = self.a.overflowing_add(self.register(reg));
-                 let overflow = (self.a as i16).overflowing_add(self.register(reg) as i16).1;
-                 self.a = result;
-                 self.set_operation_flags(self.a);
-                 self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
-             }
-             Instruction::Subtract(reg) => {
-                 let (result, carry) = self.a.overflowing_sub(self.register(reg));
-                 let overflow = (self.a as i16).overflowing_sub(self.register(reg) as i16).1;
-                 self.a = result;
-                 self.set_operation_flags(self.a);
-                 self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
-             }
-             Instruction::AddWithCarry(reg) => {
-                let (result, carry) = self.a.carrying_add(self.register(reg), self.flags & (1 << flag::CARRY) != 0);
-                let overflow = (self.a as i16).carrying_add(self.register(reg) as i16, self.flags & (1 << flag::CARRY) != 0).1;
-                 self.a = result;
-                 self.set_operation_flags(self.a);
-                 self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
-             }
-             Instruction::SubtractWithBorrow(reg) => {
-                 let (result, carry) = self.a.borrowing_sub(self.register(reg), self.flags & (1 << flag::CARRY) != 0);
-                 let overflow = (self.a as i16).borrowing_sub(self.register(reg) as i16, self.flags & (1 << flag::CARRY) != 0).1;
-                 self.a = result;
-                 self.set_operation_flags(self.a);
-                 self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
-             }
-             Instruction::Compare(reg) => {
-                 let (result, carry) = self.a.overflowing_sub(self.register(reg));
-                 let overflow = (self.a as i16).overflowing_sub(self.register(reg) as i16).1;
-                 self.set_operation_flags(result);
-                 self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
-             }
-             Instruction::CompareImmediate(value) => {
-                 let (result, carry) = self.a.overflowing_sub(value);
-                 let overflow = (self.a as i16).overflowing_sub(value as i16).1;
-                 self.set_operation_flags(result);
-                 self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
-             }
-             Instruction::IncrementC => {
-                 let (result, carry) = self.c.overflowing_add(1);
-                 let overflow = (self.c as i16).overflowing_add(1).1;
-                 self.c = result;
-                 self.set_operation_flags(self.c);
-                 self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
-             }
-             Instruction::DecrementC => {
-                 let (result, carry) = self.c.overflowing_sub(1);
-                 let overflow = (self.c as i16).overflowing_sub(1).1;
-                 self.c = result;
-                 self.set_operation_flags(self.c);
-             }
-             Instruction::CompareC(reg) => {
-                 let (result, carry) = self.c.overflowing_sub(self.register(reg));
-                 let overflow = (self.c as i16).overflowing_sub(self.register(reg) as i16).1;
-                 self.set_operation_flags(result);
-                 self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
-             }
-             Instruction::CompareCImmediate(value) => {
-                 let (result, carry) = self.c.overflowing_sub(value);
-                 let overflow = (self.c as i16).overflowing_sub(value as i16).1;
-                 self.set_operation_flags(result);
-                 self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
-             }
-             Instruction::Jump(address) => { self.pc = address }
-             Instruction::JumpRelative(offset) => { self.pc = self.b.wrapping_add(offset) }
-             Instruction::JumpIf(cond, address) => { if self.check_condition(cond) { self.pc = address } }
-             Instruction::JumpRelativeIf(cond, offset) => { if self.check_condition(cond) { self.pc = self.b.wrapping_add(offset) } }
-             Instruction::Loop(address) => { self.c = self.c.wrapping_sub(1); if self.c != 0 { self.pc = address } }
-             Instruction::LoopRelative(offset) => { self.c = self.c.wrapping_sub(1); if self.c != 0 { self.pc = self.b.wrapping_add(offset) } }
-             Instruction::Push => { self.sp = self.sp.wrapping_sub(2); self.memory[self.sp as usize] = self.a as u8; self.memory[self.sp as usize + 1] = (self.a >> 8) as u8 }
-             Instruction::PushPC => { self.sp = self.sp.wrapping_sub(2); self.memory[self.sp as usize] = self.pc as u8; self.memory[self.sp as usize + 1] = (self.pc >> 8) as u8}
-             Instruction::PushFlags => { self.sp = self.sp.wrapping_sub(2); self.memory[self.sp as usize] = self.flags as u8; self.memory[self.sp as usize + 1] = (self.flags >> 8) as u8 }
-             Instruction::Pop => { self.a = u16::from_le_bytes([self.memory[self.sp as usize], self.memory[self.sp as usize + 1]]); self.sp = self.sp.wrapping_add(2) }
-             Instruction::PopPC => { self.pc = u16::from_le_bytes([self.memory[self.sp as usize], self.memory[self.sp as usize + 1]]); self.sp = self.sp.wrapping_add(2) }
-             Instruction::PopFlags => { self.flags = u16::from_le_bytes([self.memory[self.sp as usize], self.memory[self.sp as usize + 1]]); self.sp = self.sp.wrapping_add(2) }
-             Instruction::Input => { self.a = self.memory[self.d as usize] as u16 }
-             Instruction::Output => { self.memory[self.d as usize] = self.a as u8 }
-             Instruction::SetInterrupt(address) => { self.memory[0xFFFE] = address as u8; self.memory[0xFFFF] = (address >> 8) as u8 }
-             Instruction::Clear(flag) => { self.flags &= !(1 << flag) }
-             Instruction::Set(flag) => { self.flags |= 1 << flag }
+            Instruction::Decrement => {
+                let (result, carry) = self.a.overflowing_sub(1);
+                let overflow = (self.a as i16).overflowing_sub(1).1;
+                self.a = result;
+                self.set_operation_flags(self.a);
+                self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
+            }
+            Instruction::And(reg) => {
+                self.a &= self.register(reg);
+                self.set_operation_flags(self.a);
+            }
+            Instruction::Or(reg) => {
+                self.a |= self.register(reg);
+                self.set_operation_flags(self.a);
+            }
+            Instruction::Xor(reg) => {
+                self.a ^= self.register(reg);
+                self.set_operation_flags(self.a);
+            }
+            Instruction::LeftShift(reg) => {
+                let shift = self.register(reg) as u32;
+                let carry = (self.a as u32) >> (16 - shift);
+                self.a <<= shift;
+                self.set_operation_flags(self.a);
+                self.flags |= (carry as u16) << flag::CARRY;
+            }
+            Instruction::RightShift(reg) => {
+                let shift = self.register(reg) as u32;
+                let carry = (self.a as u32) >> (shift - 1);
+                self.a >>= shift;
+                self.set_operation_flags(self.a);
+                self.flags |= (carry as u16) << flag::CARRY;
+            }
+            Instruction::Add(reg) => {
+                let (result, carry) = self.a.overflowing_add(self.register(reg));
+                let overflow = (self.a as i16).overflowing_add(self.register(reg) as i16).1;
+                self.a = result;
+                self.set_operation_flags(self.a);
+                self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
+            }
+            Instruction::Subtract(reg) => {
+                let (result, carry) = self.a.overflowing_sub(self.register(reg));
+                let overflow = (self.a as i16).overflowing_sub(self.register(reg) as i16).1;
+                self.a = result;
+                self.set_operation_flags(self.a);
+                self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
+            }
+            Instruction::AddWithCarry(reg) => {
+                let (result, carry) = self
+                    .a
+                    .carrying_add(self.register(reg), self.flags & (1 << flag::CARRY) != 0);
+                let overflow = (self.a as i16)
+                    .carrying_add(
+                        self.register(reg) as i16,
+                        self.flags & (1 << flag::CARRY) != 0,
+                    )
+                    .1;
+                self.a = result;
+                self.set_operation_flags(self.a);
+                self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
+            }
+            Instruction::SubtractWithBorrow(reg) => {
+                let (result, carry) = self
+                    .a
+                    .borrowing_sub(self.register(reg), self.flags & (1 << flag::CARRY) != 0);
+                let overflow = (self.a as i16)
+                    .borrowing_sub(
+                        self.register(reg) as i16,
+                        self.flags & (1 << flag::CARRY) != 0,
+                    )
+                    .1;
+                self.a = result;
+                self.set_operation_flags(self.a);
+                self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
+            }
+            Instruction::Compare(reg) => {
+                let (result, carry) = self.a.overflowing_sub(self.register(reg));
+                let overflow = (self.a as i16).overflowing_sub(self.register(reg) as i16).1;
+                self.set_operation_flags(result);
+                self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
+            }
+            Instruction::CompareImmediate(value) => {
+                let (result, carry) = self.a.overflowing_sub(value);
+                let overflow = (self.a as i16).overflowing_sub(value as i16).1;
+                self.set_operation_flags(result);
+                self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
+            }
+            Instruction::IncrementC => {
+                let (result, carry) = self.c.overflowing_add(1);
+                let overflow = (self.c as i16).overflowing_add(1).1;
+                self.c = result;
+                self.set_operation_flags(self.c);
+                self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
+            }
+            Instruction::DecrementC => {
+                let (result, carry) = self.c.overflowing_sub(1);
+                let overflow = (self.c as i16).overflowing_sub(1).1;
+                self.c = result;
+                self.set_operation_flags(self.c);
+                self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
+            }
+            Instruction::CompareC(reg) => {
+                let (result, carry) = self.c.overflowing_sub(self.register(reg));
+                let overflow = (self.c as i16).overflowing_sub(self.register(reg) as i16).1;
+                self.set_operation_flags(result);
+                self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
+            }
+            Instruction::CompareCImmediate(value) => {
+                let (result, carry) = self.c.overflowing_sub(value);
+                let overflow = (self.c as i16).overflowing_sub(value as i16).1;
+                self.set_operation_flags(result);
+                self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
+            }
+            Instruction::Jump(address) => self.pc = address,
+            Instruction::JumpRelative(offset) => self.pc = self.b.wrapping_add(offset),
+            Instruction::JumpIf(cond, address) => {
+                if self.check_condition(cond) {
+                    self.pc = address
+                }
+            }
+            Instruction::JumpRelativeIf(cond, offset) => {
+                if self.check_condition(cond) {
+                    self.pc = self.b.wrapping_add(offset)
+                }
+            }
+            Instruction::Loop(address) => {
+                self.c = self.c.wrapping_sub(1);
+                if self.c != 0 {
+                    self.pc = address
+                }
+            }
+            Instruction::LoopRelative(offset) => {
+                self.c = self.c.wrapping_sub(1);
+                if self.c != 0 {
+                    self.pc = self.b.wrapping_add(offset)
+                }
+            }
+            Instruction::Push => {
+                self.sp = self.sp.wrapping_sub(2);
+                self.memory[self.sp as usize] = self.a as u8;
+                self.memory[self.sp as usize + 1] = (self.a >> 8) as u8
+            }
+            Instruction::PushPC => {
+                self.sp = self.sp.wrapping_sub(2);
+                self.memory[self.sp as usize] = self.pc as u8;
+                self.memory[self.sp as usize + 1] = (self.pc >> 8) as u8
+            }
+            Instruction::PushFlags => {
+                self.sp = self.sp.wrapping_sub(2);
+                self.memory[self.sp as usize] = self.flags as u8;
+                self.memory[self.sp as usize + 1] = (self.flags >> 8) as u8
+            }
+            Instruction::Pop => {
+                self.a = u16::from_le_bytes([
+                    self.memory[self.sp as usize],
+                    self.memory[self.sp as usize + 1],
+                ]);
+                self.sp = self.sp.wrapping_add(2)
+            }
+            Instruction::PopPC => {
+                self.pc = u16::from_le_bytes([
+                    self.memory[self.sp as usize],
+                    self.memory[self.sp as usize + 1],
+                ]);
+                self.sp = self.sp.wrapping_add(2)
+            }
+            Instruction::PopFlags => {
+                self.flags = u16::from_le_bytes([
+                    self.memory[self.sp as usize],
+                    self.memory[self.sp as usize + 1],
+                ]);
+                self.sp = self.sp.wrapping_add(2)
+            }
+            Instruction::Input => self.a = self.memory[self.d as usize] as u16,
+            Instruction::Output => self.memory[self.d as usize] = self.a as u8,
+            Instruction::SetInterrupt(address) => {
+                self.memory[0xFFFE] = address as u8;
+                self.memory[0xFFFF] = (address >> 8) as u8
+            }
+            Instruction::Clear(flag) => self.flags &= !(1 << flag),
+            Instruction::Set(flag) => self.flags |= 1 << flag,
         }
     }
-    
+
     fn set_operation_flags(&mut self, value: u16) {
         self.flags &= !(1 << flag::ZERO | 1 << flag::SIGN | 1 << flag::CARRY | 1 << flag::OVERFLOW);
         if value == 0 {
@@ -619,15 +739,25 @@ impl Emulator {
             CARRY | BELOW | NOT_ABOVE_EQUAL => self.flags & (1 << flag::CARRY) != 0,
             OVERFLOW => self.flags & (1 << flag::OVERFLOW) != 0,
             BELOW_EQUAL | NOT_ABOVE => self.flags & (1 << flag::CARRY | 1 << flag::ZERO) != 0,
-            LESS_EQUAL | NOT_GREATER => self.flags & (1 << flag::ZERO) != 0 || self.flags & (1 << flag::SIGN) != self.flags & (1 << flag::OVERFLOW),
-            LESS | NOT_GREATER_EQUAL => self.flags & (1 << flag::SIGN) != self.flags & (1 << flag::OVERFLOW),
+            LESS_EQUAL | NOT_GREATER => {
+                self.flags & (1 << flag::ZERO) != 0
+                    || self.flags & (1 << flag::SIGN) != self.flags & (1 << flag::OVERFLOW)
+            }
+            LESS | NOT_GREATER_EQUAL => {
+                self.flags & (1 << flag::SIGN) != self.flags & (1 << flag::OVERFLOW)
+            }
             NOT_ZERO | NOT_EQUAL => self.flags & (1 << flag::ZERO) == 0,
             NOT_SIGN => self.flags & (1 << flag::SIGN) == 0,
             NOT_CARRY | ABOVE | NOT_BELOW_EQUAL => self.flags & (1 << flag::CARRY) == 0,
             NOT_OVERFLOW => self.flags & (1 << flag::OVERFLOW) == 0,
             NOT_BELOW | ABOVE_EQUAL => self.flags & (1 << flag::CARRY | 1 << flag::ZERO) == 0,
-            NOT_LESS_EQUAL | GREATER => self.flags & (1 << flag::ZERO) == 0 && self.flags & (1 << flag::SIGN) == self.flags & (1 << flag::OVERFLOW),
-            NOT_LESS | GREATER_EQUAL => self.flags & (1 << flag::SIGN) == self.flags & (1 << flag::OVERFLOW),
+            NOT_LESS_EQUAL | GREATER => {
+                self.flags & (1 << flag::ZERO) == 0
+                    && self.flags & (1 << flag::SIGN) == self.flags & (1 << flag::OVERFLOW)
+            }
+            NOT_LESS | GREATER_EQUAL => {
+                self.flags & (1 << flag::SIGN) == self.flags & (1 << flag::OVERFLOW)
+            }
             _ => unimplemented!("Invalid condition: {cond}"),
         }
     }
