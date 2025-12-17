@@ -14,3 +14,8 @@ See [instructions.csv](instructions.csv).
 
 - [ ] IN
 - [ ] OUT
+
+## Principles
+
+A: Only GPR that can read/write memory
+B: 
