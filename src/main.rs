@@ -288,19 +288,19 @@ impl Instruction {
             0x1E => StoreByteOffset(u16::from_le_bytes([next_byte()?, next_byte()?])),
             0x1F => StoreByteStackOffset(u16::from_le_bytes([next_byte()?, next_byte()?])),
             0x20..=0x23 => Not(register),
-            0x24..=0x27 => Increment(register),
-            0x28..=0x2B => Decrement(register),
-            0x2C..=0x2F => And(register),
-            0x30..=0x33 => Or(register),
-            0x34..=0x37 => Xor(register),
-            0x38..=0x3B => LeftShift(register),
-            0x3C..=0x3F => RightShift(register),
-            0x40..=0x43 => Add(register),
-            0x44..=0x47 => Subtract(register),
-            0x48..=0x4B => AddWithCarry(register),
-            0x4C..=0x4F => SubtractWithBorrow(register),
-            0x50..=0x53 => CompareA(register),
-            0x54..=0x58 => {
+            0x28..=0x2B => Increment(register),
+            0x2C..=0x2F => Decrement(register),
+            0x30..=0x33 => And(register),
+            0x34..=0x37 => Or(register),
+            0x38..=0x3B => Xor(register),
+            0x3C..=0x3F => LeftShift(register),
+            0x40..=0x43 => RightShift(register),
+            0x44..=0x47 => Add(register),
+            0x48..=0x4B => Subtract(register),
+            0x4C..=0x4F => AddWithCarry(register),
+            0x50..=0x53 => SubtractWithBorrow(register),
+            0x54..=0x57 => CompareA(register),
+            0x58..=0x5B => {
                 CompareImmediate(register, u16::from_le_bytes([next_byte()?, next_byte()?]))
             }
             0x60 => Jump(u16::from_le_bytes([next_byte()?, next_byte()?])),
@@ -821,6 +821,9 @@ impl Emulator {
 fn main() {
     use GeneralPurposeRegister::*;
     use Instruction::*;
+
+    let print_status: bool = false;
+
     let mut emu = Emulator::new([]);
 
     emu.load_rom(
@@ -851,17 +854,19 @@ fn main() {
     );
 
     while emu.flags & (1 << flag::HALT) == 0 {
-        eprintln!(
-            "A: {:04X} | B: {:04X} | C: {:04X} | D: {:04X}  |  SP: {:04X}  |  FLAGS: {:016b}  |  PC: {:04X}  |  {:?}",
-            emu.a,
-            emu.b,
-            emu.c,
-            emu.d,
-            emu.sp,
-            emu.flags,
-            emu.pc,
-            emu.next_instruction()
-        );
+        if print_status {
+            eprintln!(
+                "A: {:04X} | B: {:04X} | C: {:04X} | D: {:04X}  |  SP: {:04X}  |  FLAGS: {:016b}  |  PC: {:04X}  |  {:?}",
+                emu.a,
+                emu.b,
+                emu.c,
+                emu.d,
+                emu.sp,
+                emu.flags,
+                emu.pc,
+                emu.next_instruction()
+            );
+        }
         emu.advance();
     }
 }
