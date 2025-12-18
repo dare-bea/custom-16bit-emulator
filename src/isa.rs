@@ -1,5 +1,7 @@
-use crate::types::*;
 use crate::emulator::Emulator;
+use crate::flag;
+use crate::memory::Memory;
+use crate::register::GeneralPurposeRegister;
 use std::io::{Read, stdin};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
@@ -241,11 +243,12 @@ impl Instruction {
         }
         result
     }
-    
-    pub fn from_iter<'a>(
-        mut iter: impl Iterator<Item = &'a u8>,
+
+    pub fn try_from_iter<'a>(
+        iter: impl IntoIterator<Item = &'a u8>,
     ) -> Result<(Self, u32), InstructionError> {
         use Instruction::*;
+        let mut iter = iter.into_iter();
         let mut count = 0u32;
 
         let mut next_byte = || match iter.next() {
@@ -342,271 +345,235 @@ impl Instruction {
     }
 }
 
-impl Emulator {
-pub fn execute(&mut self, instruction: Instruction) {
-    match instruction {
-        Instruction::LoadFrom(reg) => self.a = self.register(reg),
-        Instruction::StoreTo(reg) => *self.mut_register(reg) = self.a,
-        Instruction::Zero(reg) => *self.mut_register(reg) = 0,
-        Instruction::LoadImmediate(reg, value) => *self.mut_register(reg) = value,
-        Instruction::LoadAddress(address) => {
-            self.a = u16::from_le_bytes([
-                self.memory[address as usize],
-                self.memory[address.wrapping_add(1) as usize],
-            ])
-        }
-        Instruction::LoadIndirect => {
-            self.a = u16::from_le_bytes([
-                self.memory[self.b as usize],
-                self.memory[self.b.wrapping_add(1) as usize],
-            ])
-        }
-        Instruction::LoadOffset(offset) => {
-            self.a = u16::from_le_bytes([
-                self.memory[self.b.wrapping_add(offset) as usize],
-                self.memory[self.b.wrapping_add(offset).wrapping_add(1) as usize],
-            ])
-        }
-        Instruction::LoadStackOffset(offset) => {
-            self.a = u16::from_le_bytes([
-                self.memory[self.sp.wrapping_add(offset) as usize],
-                self.memory[self.sp.wrapping_add(offset).wrapping_add(1) as usize],
-            ])
-        }
-        Instruction::LoadByteAddress(address) => self.a = self.memory[address as usize] as u16,
-        Instruction::LoadByteIndirect => self.a = self.memory[self.b as usize] as u16,
-        Instruction::LoadByteOffset(offset) => {
-            self.a = self.memory[self.b.wrapping_add(offset) as usize] as u16
-        }
-        Instruction::LoadByteStackOffset(offset) => {
-            self.a = self.memory[self.sp.wrapping_add(offset) as usize] as u16
-        }
-        Instruction::StoreAddress(address) => {
-            self.memory[address as usize] = self.a as u8;
-            self.memory[address.wrapping_add(1) as usize] = (self.a >> 8) as u8
-        }
-        Instruction::StoreIndirect => {
-            self.memory[self.b as usize] = self.a as u8;
-            self.memory[self.b.wrapping_add(1) as usize] = (self.a >> 8) as u8
-        }
-        Instruction::StoreOffset(offset) => {
-            self.memory[self.b.wrapping_add(offset) as usize] = self.a as u8;
-            self.memory[self.b.wrapping_add(offset).wrapping_add(1) as usize] = (self.a >> 8) as u8
-        }
-        Instruction::StoreStackOffset(offset) => {
-            self.memory[self.sp.wrapping_add(offset) as usize] = self.a as u8;
-            self.memory[self.sp.wrapping_add(offset).wrapping_add(1) as usize] = (self.a >> 8) as u8
-        }
-        Instruction::StoreByteAddress(address) => self.memory[address as usize] = self.a as u8,
-        Instruction::StoreByteIndirect => self.memory[self.b as usize] = self.a as u8,
-        Instruction::StoreByteOffset(offset) => {
-            self.memory[self.b.wrapping_add(offset) as usize] = self.a as u8
-        }
-        Instruction::StoreByteStackOffset(offset) => {
-            self.memory[self.sp.wrapping_add(offset) as usize] = self.a as u8
-        }
-        Instruction::Not(reg) => {
-            *self.mut_register(reg) = !self.register(reg);
-            self.set_operation_flags(self.register(reg));
-        }
-        Instruction::Increment(reg) => {
-            let (result, carry) = self.register(reg).overflowing_add(1);
-            let overflow = (self.register(reg) as i16).overflowing_add(1).1;
-            *self.mut_register(reg) = result;
-            self.set_operation_flags(self.register(reg));
-            self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
-        }
-        Instruction::Decrement(reg) => {
-            let (result, carry) = self.register(reg).overflowing_sub(1);
-            let overflow = (self.register(reg) as i16).overflowing_sub(1).1;
-            *self.mut_register(reg) = result;
-            self.set_operation_flags(self.register(reg));
-            self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
-        }
-        Instruction::And(reg) => {
-            self.a &= self.register(reg);
-            self.set_operation_flags(self.a);
-        }
-        Instruction::Or(reg) => {
-            self.a |= self.register(reg);
-            self.set_operation_flags(self.a);
-        }
-        Instruction::Xor(reg) => {
-            self.a ^= self.register(reg);
-            self.set_operation_flags(self.a);
-        }
-        Instruction::LeftShift(reg) => {
-            let (result, carry) = self.a.overflowing_shl(self.register(reg) as u32);
-            self.a = result;
-            self.set_operation_flags(self.a);
-            self.flags |= (carry as u16) << flag::CARRY;
-        }
-        Instruction::RightShift(reg) => {
-            let (result, carry) = self.a.overflowing_shr(self.register(reg) as u32);
-            self.a = result;
-            self.set_operation_flags(self.a);
-            self.flags |= (carry as u16) << flag::CARRY;
-        }
-        Instruction::Add(reg) => {
-            let (result, carry) = self.a.overflowing_add(self.register(reg));
-            let overflow = (self.a as i16).overflowing_add(self.register(reg) as i16).1;
-            self.a = result;
-            self.set_operation_flags(self.a);
-            self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
-        }
-        Instruction::Subtract(reg) => {
-            let (result, carry) = self.a.overflowing_sub(self.register(reg));
-            let overflow = (self.a as i16).overflowing_sub(self.register(reg) as i16).1;
-            self.a = result;
-            self.set_operation_flags(self.a);
-            self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
-        }
-        Instruction::AddWithCarry(reg) => {
-            let (result, carry) = self
-                .a
-                .carrying_add(self.register(reg), self.flags & (1 << flag::CARRY) != 0);
-            let overflow = (self.a as i16)
-                .carrying_add(
-                    self.register(reg) as i16,
-                    self.flags & (1 << flag::CARRY) != 0,
-                )
-                .1;
-            self.a = result;
-            self.set_operation_flags(self.a);
-            self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
-        }
-        Instruction::SubtractWithBorrow(reg) => {
-            let (result, carry) = self
-                .a
-                .borrowing_sub(self.register(reg), self.flags & (1 << flag::CARRY) != 0);
-            let overflow = (self.a as i16)
-                .borrowing_sub(
-                    self.register(reg) as i16,
-                    self.flags & (1 << flag::CARRY) != 0,
-                )
-                .1;
-            self.a = result;
-            self.set_operation_flags(self.a);
-            self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
-        }
-        Instruction::CompareA(reg) => {
-            let (result, carry) = self.a.overflowing_sub(self.register(reg));
-            let overflow = (self.a as i16).overflowing_sub(self.register(reg) as i16).1;
-            self.set_operation_flags(result);
-            self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
-        }
-        Instruction::CompareImmediate(reg, value) => {
-            let (result, carry) = self.register(reg).overflowing_sub(value);
-            let overflow = (self.register(reg) as i16).overflowing_sub(value as i16).1;
-            self.set_operation_flags(result);
-            self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
-        }
-        Instruction::Jump(address) => self.pc = address,
-        Instruction::JumpOffset(offset) => self.pc = self.b.wrapping_add(offset),
-        Instruction::JumpRelative(offset) => self.pc = self.pc.wrapping_add(offset),
-        Instruction::JumpIf(cond, address) => {
-            if self.check_condition(cond) {
-                self.pc = address
+impl<M: Memory> Emulator<M> {
+    pub fn execute(&mut self, instruction: Instruction) {
+        match instruction {
+            Instruction::LoadFrom(reg) => self.a = self.register(reg),
+            Instruction::StoreTo(reg) => *self.mut_register(reg) = self.a,
+            Instruction::Zero(reg) => *self.mut_register(reg) = 0,
+            Instruction::LoadImmediate(reg, value) => *self.mut_register(reg) = value,
+            Instruction::LoadAddress(address) => self.a = self.memory.read_word(address as usize),
+            Instruction::LoadIndirect => self.a = self.memory.read_word(self.b as usize),
+            Instruction::LoadOffset(offset) => {
+                self.a = self.memory.read_word(self.b.wrapping_add(offset) as usize)
             }
-        }
-        Instruction::JumpOffsetIf(cond, offset) => {
-            if self.check_condition(cond) {
+            Instruction::LoadStackOffset(offset) => {
+                self.a = self.memory.read_word(self.sp.wrapping_add(offset) as usize)
+            }
+            Instruction::LoadByteAddress(address) => {
+                self.a = self.memory.read_byte(address as usize) as u16
+            }
+            Instruction::LoadByteIndirect => self.a = self.memory.read_byte(self.b as usize) as u16,
+            Instruction::LoadByteOffset(offset) => {
+                self.a = self.memory.read_byte(self.b.wrapping_add(offset) as usize) as u16
+            }
+            Instruction::LoadByteStackOffset(offset) => {
+                self.a = self.memory.read_byte(self.sp.wrapping_add(offset) as usize) as u16
+            }
+            Instruction::StoreAddress(address) => self.memory.write_word(address as usize, self.a),
+            Instruction::StoreIndirect => self.memory.write_word(self.b as usize, self.a),
+            Instruction::StoreOffset(offset) => {
+                self.memory
+                    .write_word(self.b.wrapping_add(offset) as usize, self.a);
+            }
+            Instruction::StoreStackOffset(offset) => {
+                self.memory
+                    .write_word(self.sp.wrapping_add(offset) as usize, self.a);
+            }
+            Instruction::StoreByteAddress(address) => {
+                self.memory.write_byte(address as usize, self.a as u8)
+            }
+            Instruction::StoreByteIndirect => self.memory.write_byte(self.b as usize, self.a as u8),
+            Instruction::StoreByteOffset(offset) => self
+                .memory
+                .write_byte(self.b.wrapping_add(offset) as usize, self.a as u8),
+            Instruction::StoreByteStackOffset(offset) => self
+                .memory
+                .write_byte(self.sp.wrapping_add(offset) as usize, self.a as u8),
+            Instruction::Not(reg) => {
+                *self.mut_register(reg) = !self.register(reg);
+                self.set_operation_flags(self.register(reg));
+            }
+            Instruction::Increment(reg) => {
+                let (result, carry) = self.register(reg).overflowing_add(1);
+                let overflow = (self.register(reg) as i16).overflowing_add(1).1;
+                *self.mut_register(reg) = result;
+                self.set_operation_flags(self.register(reg));
+                self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
+            }
+            Instruction::Decrement(reg) => {
+                let (result, carry) = self.register(reg).overflowing_sub(1);
+                let overflow = (self.register(reg) as i16).overflowing_sub(1).1;
+                *self.mut_register(reg) = result;
+                self.set_operation_flags(self.register(reg));
+                self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
+            }
+            Instruction::And(reg) => {
+                self.a &= self.register(reg);
+                self.set_operation_flags(self.a);
+            }
+            Instruction::Or(reg) => {
+                self.a |= self.register(reg);
+                self.set_operation_flags(self.a);
+            }
+            Instruction::Xor(reg) => {
+                self.a ^= self.register(reg);
+                self.set_operation_flags(self.a);
+            }
+            Instruction::LeftShift(reg) => {
+                let (result, carry) = self.a.overflowing_shl(self.register(reg) as u32);
+                self.a = result;
+                self.set_operation_flags(self.a);
+                self.flags |= (carry as u16) << flag::CARRY;
+            }
+            Instruction::RightShift(reg) => {
+                let (result, carry) = self.a.overflowing_shr(self.register(reg) as u32);
+                self.a = result;
+                self.set_operation_flags(self.a);
+                self.flags |= (carry as u16) << flag::CARRY;
+            }
+            Instruction::Add(reg) => {
+                let (result, carry) = self.a.overflowing_add(self.register(reg));
+                let overflow = (self.a as i16).overflowing_add(self.register(reg) as i16).1;
+                self.a = result;
+                self.set_operation_flags(self.a);
+                self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
+            }
+            Instruction::Subtract(reg) => {
+                let (result, carry) = self.a.overflowing_sub(self.register(reg));
+                let overflow = (self.a as i16).overflowing_sub(self.register(reg) as i16).1;
+                self.a = result;
+                self.set_operation_flags(self.a);
+                self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
+            }
+            Instruction::AddWithCarry(reg) => {
+                let (result, carry) = self
+                    .a
+                    .carrying_add(self.register(reg), self.flags & (1 << flag::CARRY) != 0);
+                let overflow = (self.a as i16)
+                    .carrying_add(
+                        self.register(reg) as i16,
+                        self.flags & (1 << flag::CARRY) != 0,
+                    )
+                    .1;
+                self.a = result;
+                self.set_operation_flags(self.a);
+                self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
+            }
+            Instruction::SubtractWithBorrow(reg) => {
+                let (result, carry) = self
+                    .a
+                    .borrowing_sub(self.register(reg), self.flags & (1 << flag::CARRY) != 0);
+                let overflow = (self.a as i16)
+                    .borrowing_sub(
+                        self.register(reg) as i16,
+                        self.flags & (1 << flag::CARRY) != 0,
+                    )
+                    .1;
+                self.a = result;
+                self.set_operation_flags(self.a);
+                self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
+            }
+            Instruction::CompareA(reg) => {
+                let (result, carry) = self.a.overflowing_sub(self.register(reg));
+                let overflow = (self.a as i16).overflowing_sub(self.register(reg) as i16).1;
+                self.set_operation_flags(result);
+                self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
+            }
+            Instruction::CompareImmediate(reg, value) => {
+                let (result, carry) = self.register(reg).overflowing_sub(value);
+                let overflow = (self.register(reg) as i16).overflowing_sub(value as i16).1;
+                self.set_operation_flags(result);
+                self.flags |= (overflow as u16) << flag::OVERFLOW | (carry as u16) << flag::CARRY;
+            }
+            Instruction::Jump(address) => self.pc = address,
+            Instruction::JumpOffset(offset) => self.pc = self.b.wrapping_add(offset),
+            Instruction::JumpRelative(offset) => self.pc = self.pc.wrapping_add(offset),
+            Instruction::JumpIf(cond, address) => {
+                if self.check_condition(cond) {
+                    self.pc = address
+                }
+            }
+            Instruction::JumpOffsetIf(cond, offset) => {
+                if self.check_condition(cond) {
+                    self.pc = self.b.wrapping_add(offset)
+                }
+            }
+            Instruction::JumpRelativeIf(cond, offset) => {
+                if self.check_condition(cond) {
+                    self.pc = self.pc.wrapping_add(offset)
+                }
+            }
+            Instruction::Loop(address) => {
+                self.c = self.c.wrapping_sub(1);
+                if self.c != 0 {
+                    self.pc = address
+                }
+            }
+            Instruction::LoopOffset(offset) => {
+                self.c = self.c.wrapping_sub(1);
+                if self.c != 0 {
+                    self.pc = self.b.wrapping_add(offset)
+                }
+            }
+            Instruction::LoopRelative(offset) => {
+                self.c = self.c.wrapping_sub(1);
+                if self.c != 0 {
+                    self.pc = self.pc.wrapping_add(offset)
+                }
+            }
+            Instruction::Call(address) => {
+                self.sp = self.sp.wrapping_sub(2);
+                self.memory.write_word(self.sp as usize, self.pc);
+                self.pc = address;
+            }
+            Instruction::CallOffset(offset) => {
+                self.sp = self.sp.wrapping_sub(2);
+                self.memory.write_word(self.sp as usize, self.pc);
                 self.pc = self.b.wrapping_add(offset)
             }
-        }
-        Instruction::JumpRelativeIf(cond, offset) => {
-            if self.check_condition(cond) {
+            Instruction::CallRelative(offset) => {
+                self.sp = self.sp.wrapping_sub(2);
+                self.memory.write_word(self.sp as usize, self.pc);
                 self.pc = self.pc.wrapping_add(offset)
             }
-        }
-        Instruction::Loop(address) => {
-            self.c = self.c.wrapping_sub(1);
-            if self.c != 0 {
-                self.pc = address
+            Instruction::Push => {
+                self.sp = self.sp.wrapping_sub(2);
+                self.memory.write_word(self.sp as usize, self.a);
             }
-        }
-        Instruction::LoopOffset(offset) => {
-            self.c = self.c.wrapping_sub(1);
-            if self.c != 0 {
-                self.pc = self.b.wrapping_add(offset)
+            Instruction::PushPC => {
+                self.sp = self.sp.wrapping_sub(2);
+                self.memory.write_word(self.sp as usize, self.pc);
             }
-        }
-        Instruction::LoopRelative(offset) => {
-            self.c = self.c.wrapping_sub(1);
-            if self.c != 0 {
-                self.pc = self.pc.wrapping_add(offset)
+            Instruction::PushFlags => {
+                self.sp = self.sp.wrapping_sub(2);
+                self.memory.write_word(self.sp as usize, self.flags);
             }
-        }
-        Instruction::Call(address) => {
-            self.sp = self.sp.wrapping_sub(2);
-            self.memory[self.sp as usize] = self.pc as u8;
-            self.memory[self.sp.wrapping_add(1) as usize] = (self.pc >> 8) as u8;
-            self.pc = address;
-        }
-        Instruction::CallOffset(offset) => {
-            self.sp = self.sp.wrapping_sub(2);
-            self.memory[self.sp as usize] = self.pc as u8;
-            self.memory[self.sp.wrapping_add(1) as usize] = (self.pc >> 8) as u8;
-            self.pc = self.b.wrapping_add(offset)
-        }
-        Instruction::CallRelative(offset) => {
-            self.sp = self.sp.wrapping_sub(2);
-            self.memory[self.sp as usize] = self.pc as u8;
-            self.memory[self.sp.wrapping_add(1) as usize] = (self.pc >> 8) as u8;
-            self.pc = self.pc.wrapping_add(offset)
-        }
-        Instruction::Push => {
-            self.sp = self.sp.wrapping_sub(2);
-            self.memory[self.sp as usize] = self.a as u8;
-            self.memory[self.sp.wrapping_add(1) as usize] = (self.a >> 8) as u8
-        }
-        Instruction::PushPC => {
-            self.sp = self.sp.wrapping_sub(2);
-            self.memory[self.sp as usize] = self.pc as u8;
-            self.memory[self.sp.wrapping_add(1) as usize] = (self.pc >> 8) as u8
-        }
-        Instruction::PushFlags => {
-            self.sp = self.sp.wrapping_sub(2);
-            self.memory[self.sp as usize] = self.flags as u8;
-            self.memory[self.sp.wrapping_add(1) as usize] = (self.flags >> 8) as u8
-        }
-        Instruction::Pop => {
-            self.a = u16::from_le_bytes([
-                self.memory[self.sp as usize],
-                self.memory[self.sp.wrapping_add(1) as usize],
-            ]);
-            self.sp = self.sp.wrapping_add(2)
-        }
-        Instruction::Return => {
-            self.pc = u16::from_le_bytes([
-                self.memory[self.sp as usize],
-                self.memory[self.sp.wrapping_add(1) as usize],
-            ]);
-            self.sp = self.sp.wrapping_add(2)
-        }
-        Instruction::PopFlags => {
-            self.flags = u16::from_le_bytes([
-                self.memory[self.sp as usize],
-                self.memory[self.sp.wrapping_add(1) as usize],
-            ]);
-            self.sp = self.sp.wrapping_add(2)
-        }
-        Instruction::Input => {
-            let mut buf = [0; 1];
-            match stdin().lock().read_exact(&mut buf) {
-                Ok(_) => self.a = buf[0] as u16,
-                Err(_) => self.a = u16::MAX,
+            Instruction::Pop => {
+                self.a = self.memory.read_word(self.sp as usize);
+                self.sp = self.sp.wrapping_add(2)
             }
+            Instruction::Return => {
+                self.pc = self.memory.read_word(self.sp as usize);
+                self.sp = self.sp.wrapping_add(2)
+            }
+            Instruction::PopFlags => {
+                self.flags = self.memory.read_word(self.sp as usize);
+                self.sp = self.sp.wrapping_add(2)
+            }
+            Instruction::Input => {
+                let mut buf = [0; 1];
+                match stdin().lock().read_exact(&mut buf) {
+                    Ok(_) => self.a = buf[0] as u16,
+                    Err(_) => self.a = u16::MAX,
+                }
+            }
+            Instruction::Output => {
+                print!("{}", self.a as u8 as char)
+            }
+            Instruction::SetInterrupt(address) => self.memory.write_word(0xFFFE, address),
+            Instruction::Clear(flag) => self.flags &= !(1 << flag),
+            Instruction::Set(flag) => self.flags |= 1 << flag,
         }
-        Instruction::Output => {
-            print!("{}", self.a as u8 as char)
-        }
-        Instruction::SetInterrupt(address) => {
-            self.memory[0xFFFE] = address as u8;
-            self.memory[0xFFFF] = (address >> 8) as u8
-        }
-        Instruction::Clear(flag) => self.flags &= !(1 << flag),
-        Instruction::Set(flag) => self.flags |= 1 << flag,
     }
-}
 }

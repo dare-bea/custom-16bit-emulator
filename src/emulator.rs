@@ -1,10 +1,12 @@
-use crate::types::*;
-use crate::isa::*;
+use crate::flag;
+use crate::isa::{Instruction, InstructionError};
+use crate::memory::Memory;
+use crate::register::GeneralPurposeRegister;
 
-const MEM_SIZE: usize = 0x10000;
+pub const MEM_SIZE: usize = 0x10000;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub struct Emulator {
+pub struct Emulator<M: Memory = [u8; MEM_SIZE]> {
     /// Accumulator (operations)
     pub a: u16,
     /// Base (addresses)
@@ -19,12 +21,12 @@ pub struct Emulator {
     pub sp: u16,
     /// Program Flags
     pub flags: u16,
-    /// Program Memory Bank
-    pub memory: [u8; MEM_SIZE],
+    /// Program Memory
+    pub memory: M,
 }
 
-impl Emulator {
-    pub fn new<IterableBytes: IntoIterator<Item = u8>>(memory: IterableBytes) -> Self {
+impl<M: Memory> Emulator<M> {
+    pub fn new(memory: M) -> Self {
         Self {
             a: 0,
             b: 0,
@@ -33,13 +35,7 @@ impl Emulator {
             pc: 0,
             sp: 0xF000,
             flags: 0,
-            memory: memory
-                .into_iter()
-                .chain(std::iter::repeat(0))
-                .take(MEM_SIZE)
-                .collect::<Vec<_>>()
-                .try_into()
-                .expect("Should have exactly MEM_SIZE elements"),
+            memory,
         }
     }
 
@@ -62,24 +58,13 @@ impl Emulator {
     }
 
     pub fn next_instruction(&self) -> Result<(Instruction, u32), InstructionError> {
-        Instruction::from_iter(self.memory.iter().cycle().skip(self.pc as usize))
+        Instruction::try_from_iter(self.memory.read_array::<3>(self.pc as usize).iter())
     }
 
     pub fn advance(&mut self) {
-        match self.next_instruction() {
-            Ok((instruction, count)) => {
-                self.pc = self.pc.wrapping_add(count as u16);
-                self.execute(instruction);
-            }
-            Err(InstructionError::EndOfInput) => {
-                unreachable!(
-                    "Should not be able to reach end of input since we are repeating the memory"
-                )
-            }
-            Err(InstructionError::InvalidOpcode(opcode)) => {
-                panic!("Invalid opcode: {}", opcode);
-            }
-        }
+        let (instruction, count) = self.next_instruction().unwrap();
+        self.pc = self.pc.wrapping_add(count as u16);
+        self.execute(instruction);
     }
 
     pub fn set_operation_flags(&mut self, value: u16) {
@@ -93,9 +78,8 @@ impl Emulator {
     }
 
     pub fn check_condition(&self, cond: u8) -> bool {
-        use crate::types::condition::*;
-        use crate::types::flag;
-        
+        use crate::condition::*;
+
         #[allow(unreachable_patterns)]
         match cond {
             ZERO | EQUAL => self.flags & (1 << flag::ZERO) != 0,
@@ -124,5 +108,11 @@ impl Emulator {
             }
             _ => unimplemented!("Invalid condition: {cond}"),
         }
+    }
+}
+
+impl<M: Memory + std::default::Default> std::default::Default for Emulator<M> {
+    fn default() -> Self {
+        Self::new(M::default())
     }
 }

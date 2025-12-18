@@ -6,17 +6,13 @@
 //! - D is used for port indexing. It is not used for memory access.
 //!
 //! The GPRs may be used for any arithmetic operation.
-#![feature(bigint_helper_methods)]
 
-pub mod types;
-pub mod memory;
-pub mod isa;
-pub mod emulator;
-
-use crate::types::{GeneralPurposeRegister, flag, condition};
-use crate::isa::Instruction;
-use crate::emulator::Emulator;
-use crate::memory::Memory;
+use asm::condition;
+use asm::emulator::{Emulator, MEM_SIZE};
+use asm::flag;
+use asm::isa::Instruction;
+use asm::memory::Memory;
+use asm::register::GeneralPurposeRegister;
 
 fn main() {
     use GeneralPurposeRegister::*;
@@ -24,7 +20,7 @@ fn main() {
 
     let print_status: bool = false;
 
-    let mut emu = Emulator::new([]);
+    let mut emu = Emulator::<[u8; MEM_SIZE]>::new([0; MEM_SIZE]);
 
     emu.memory.write_array(
         0x0000,
@@ -50,9 +46,7 @@ fn main() {
 
     emu.memory.write_array(
         0x4000,
-        &Instruction::make_bytes(
-            &[/* $4000 */ Err("Hello World!\n\0".as_bytes())]
-        ),
+        &Instruction::make_bytes(&[/* $4000 */ Err("Hello, World!\n\0".as_bytes())]),
     );
 
     while emu.flags & (1 << flag::HALT) == 0 {
