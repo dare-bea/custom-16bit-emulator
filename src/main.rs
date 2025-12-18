@@ -200,7 +200,7 @@ impl From<Instruction> for Vec<u8> {
             CompareImmediate(reg, value) => vec![0x58 | reg as u8, value as u8, (value >> 8) as u8],
 
             Jump(address) => vec![0x60, address as u8, (address >> 8) as u8],
-            JumpOffset(offset) => vec![061, offset as u8, (offset >> 8) as u8],
+            JumpOffset(offset) => vec![0x61, offset as u8, (offset >> 8) as u8],
             JumpRelative(offset) => vec![0x62, offset as u8, (offset >> 8) as u8],
             Loop(address) => vec![0x64, address as u8, (address >> 8) as u8],
             LoopOffset(offset) => vec![0x65, offset as u8, (offset >> 8) as u8],
@@ -332,7 +332,6 @@ impl Instruction {
             0xAA => PopFlags,
             0xB0 => Input,
             0xB1 => Output,
-            0xBF => Return,
             0xD0 => SetInterrupt(u16::from_le_bytes([next_byte()?, next_byte()?])),
             0xE0..=0xEF => Clear(opcode & 0xF),
             0xF0..=0xFF => Set(opcode & 0xF),
@@ -497,58 +496,58 @@ impl Emulator {
             Instruction::LoadAddress(address) => {
                 self.a = u16::from_le_bytes([
                     self.memory[address as usize],
-                    self.memory[address as usize + 1],
+                    self.memory[address.wrapping_add(1) as usize],
                 ])
             }
             Instruction::LoadIndirect => {
                 self.a = u16::from_le_bytes([
                     self.memory[self.b as usize],
-                    self.memory[self.b as usize + 1],
+                    self.memory[self.b.wrapping_add(1) as usize],
                 ])
             }
             Instruction::LoadOffset(offset) => {
                 self.a = u16::from_le_bytes([
-                    self.memory[(self.b + offset) as usize],
-                    self.memory[(self.b + offset) as usize + 1],
+                    self.memory[self.b.wrapping_add(offset) as usize],
+                    self.memory[self.b.wrapping_add(offset).wrapping_add(1) as usize],
                 ])
             }
             Instruction::LoadStackOffset(offset) => {
                 self.a = u16::from_le_bytes([
-                    self.memory[(self.sp + offset) as usize],
-                    self.memory[(self.sp + offset) as usize + 1],
+                    self.memory[self.sp.wrapping_add(offset) as usize],
+                    self.memory[self.sp.wrapping_add(offset).wrapping_add(1) as usize],
                 ])
             }
             Instruction::LoadByteAddress(address) => self.a = self.memory[address as usize] as u16,
             Instruction::LoadByteIndirect => self.a = self.memory[self.b as usize] as u16,
             Instruction::LoadByteOffset(offset) => {
-                self.a = self.memory[(self.b + offset) as usize] as u16
+                self.a = self.memory[self.b.wrapping_add(offset) as usize] as u16
             }
             Instruction::LoadByteStackOffset(offset) => {
-                self.a = self.memory[(self.sp + offset) as usize] as u16
+                self.a = self.memory[self.sp.wrapping_add(offset) as usize] as u16
             }
             Instruction::StoreAddress(address) => {
                 self.memory[address as usize] = self.a as u8;
-                self.memory[address as usize + 1] = (self.a >> 8) as u8
+                self.memory[address.wrapping_add(1) as usize] = (self.a >> 8) as u8
             }
             Instruction::StoreIndirect => {
                 self.memory[self.b as usize] = self.a as u8;
-                self.memory[self.b as usize + 1] = (self.a >> 8) as u8
+                self.memory[self.b.wrapping_add(1) as usize] = (self.a >> 8) as u8
             }
             Instruction::StoreOffset(offset) => {
-                self.memory[(self.b + offset) as usize] = self.a as u8;
-                self.memory[(self.b + offset) as usize + 1] = (self.a >> 8) as u8
+                self.memory[self.b.wrapping_add(offset) as usize] = self.a as u8;
+                self.memory[self.b.wrapping_add(offset).wrapping_add(1) as usize] = (self.a >> 8) as u8
             }
             Instruction::StoreStackOffset(offset) => {
-                self.memory[(self.sp + offset) as usize] = self.a as u8;
-                self.memory[(self.sp + offset) as usize + 1] = (self.a >> 8) as u8
+                self.memory[self.sp.wrapping_add(offset) as usize] = self.a as u8;
+                self.memory[self.sp.wrapping_add(offset).wrapping_add(1) as usize] = (self.a >> 8) as u8
             }
             Instruction::StoreByteAddress(address) => self.memory[address as usize] = self.a as u8,
             Instruction::StoreByteIndirect => self.memory[self.b as usize] = self.a as u8,
             Instruction::StoreByteOffset(offset) => {
-                self.memory[(self.b + offset) as usize] = self.a as u8
+                self.memory[self.b.wrapping_add(offset) as usize] = self.a as u8
             }
             Instruction::StoreByteStackOffset(offset) => {
-                self.memory[(self.sp + offset) as usize] = self.a as u8
+                self.memory[self.sp.wrapping_add(offset) as usize] = self.a as u8
             }
             Instruction::Not(reg) => {
                 *self.mut_register(reg) = !self.register(reg);
@@ -581,16 +580,14 @@ impl Emulator {
                 self.set_operation_flags(self.a);
             }
             Instruction::LeftShift(reg) => {
-                let shift = self.register(reg) as u32;
-                let carry = (self.a as u32) >> (16 - shift);
-                self.a <<= shift;
+                let (result, carry) = self.a.overflowing_shl(self.register(reg) as u32);
+                self.a = result;
                 self.set_operation_flags(self.a);
                 self.flags |= (carry as u16) << flag::CARRY;
             }
             Instruction::RightShift(reg) => {
-                let shift = self.register(reg) as u32;
-                let carry = (self.a as u32) >> (shift - 1);
-                self.a >>= shift;
+                let (result, carry) = self.a.overflowing_shr(self.register(reg) as u32);
+                self.a = result;
                 self.set_operation_flags(self.a);
                 self.flags |= (carry as u16) << flag::CARRY;
             }
@@ -687,54 +684,54 @@ impl Emulator {
             Instruction::Call(address) => {
                 self.sp = self.sp.wrapping_sub(2);
                 self.memory[self.sp as usize] = self.pc as u8;
-                self.memory[self.sp as usize + 1] = (self.pc >> 8) as u8;
+                self.memory[self.sp.wrapping_add(1) as usize] = (self.pc >> 8) as u8;
                 self.pc = address;
             }
             Instruction::CallOffset(offset) => {
                 self.sp = self.sp.wrapping_sub(2);
                 self.memory[self.sp as usize] = self.pc as u8;
-                self.memory[self.sp as usize + 1] = (self.pc >> 8) as u8;
+                self.memory[self.sp.wrapping_add(1) as usize] = (self.pc >> 8) as u8;
                 self.pc = self.b.wrapping_add(offset)
             }
             Instruction::CallRelative(offset) => {
                 self.sp = self.sp.wrapping_sub(2);
                 self.memory[self.sp as usize] = self.pc as u8;
-                self.memory[self.sp as usize + 1] = (self.pc >> 8) as u8;
+                self.memory[self.sp.wrapping_add(1) as usize] = (self.pc >> 8) as u8;
                 self.pc = self.pc.wrapping_add(offset)
             }
             Instruction::Push => {
                 self.sp = self.sp.wrapping_sub(2);
                 self.memory[self.sp as usize] = self.a as u8;
-                self.memory[self.sp as usize + 1] = (self.a >> 8) as u8
+                self.memory[self.sp.wrapping_add(1) as usize] = (self.a >> 8) as u8
             }
             Instruction::PushPC => {
                 self.sp = self.sp.wrapping_sub(2);
                 self.memory[self.sp as usize] = self.pc as u8;
-                self.memory[self.sp as usize + 1] = (self.pc >> 8) as u8
+                self.memory[self.sp.wrapping_add(1) as usize] = (self.pc >> 8) as u8
             }
             Instruction::PushFlags => {
                 self.sp = self.sp.wrapping_sub(2);
                 self.memory[self.sp as usize] = self.flags as u8;
-                self.memory[self.sp as usize + 1] = (self.flags >> 8) as u8
+                self.memory[self.sp.wrapping_add(1) as usize] = (self.flags >> 8) as u8
             }
             Instruction::Pop => {
                 self.a = u16::from_le_bytes([
                     self.memory[self.sp as usize],
-                    self.memory[self.sp as usize + 1],
+                    self.memory[self.sp.wrapping_add(1) as usize],
                 ]);
                 self.sp = self.sp.wrapping_add(2)
             }
             Instruction::Return => {
                 self.pc = u16::from_le_bytes([
                     self.memory[self.sp as usize],
-                    self.memory[self.sp as usize + 1],
+                    self.memory[self.sp.wrapping_add(1) as usize],
                 ]);
                 self.sp = self.sp.wrapping_add(2)
             }
             Instruction::PopFlags => {
                 self.flags = u16::from_le_bytes([
                     self.memory[self.sp as usize],
-                    self.memory[self.sp as usize + 1],
+                    self.memory[self.sp.wrapping_add(1) as usize],
                 ]);
                 self.sp = self.sp.wrapping_add(2)
             }
