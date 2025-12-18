@@ -6,16 +6,17 @@
 //! - D is used for port indexing. It is not used for memory access.
 //!
 //! The GPRs may be used for any arithmetic operation.
-#![feature(bigint_helper_methods, read_array)]
+#![feature(bigint_helper_methods)]
 
 pub mod types;
+pub mod memory;
 pub mod isa;
 pub mod emulator;
 
-use std::io::{Read, stdin};
-use crate::types::*;
-use crate::isa::*;
-use crate::emulator::*;
+use crate::types::{GeneralPurposeRegister, flag, condition};
+use crate::isa::Instruction;
+use crate::emulator::Emulator;
+use crate::memory::Memory;
 
 fn main() {
     use GeneralPurposeRegister::*;
@@ -25,18 +26,18 @@ fn main() {
 
     let mut emu = Emulator::new([]);
 
-    emu.load_rom(
+    emu.memory.write_array(
         0x0000,
-        Emulator::new_rom(&[
+        &Instruction::make_bytes(&[
             /* $0000 */ Ok(LoadImmediate(B, 0x4000)),
             /* $0003 */ Ok(Call(0x2000)),
             /* $0006 */ Ok(Set(flag::HALT)),
         ]),
     );
 
-    emu.load_rom(
+    emu.memory.write_array(
         0x2000,
-        Emulator::new_rom(&[
+        &Instruction::make_bytes(&[
             /* $2000 */ Ok(LoadByteIndirect),
             /* $2001 */ Ok(And(A)),
             /* $2002 */ Ok(JumpRelativeIf(condition::ZERO, 5)),
@@ -47,9 +48,11 @@ fn main() {
         ]),
     );
 
-    emu.load_rom(
+    emu.memory.write_array(
         0x4000,
-        Emulator::new_rom(&[/* $4000 */ Err("Hello World!\n\0".as_bytes())]),
+        &Instruction::make_bytes(
+            &[/* $4000 */ Err("Hello World!\n\0".as_bytes())]
+        ),
     );
 
     while emu.flags & (1 << flag::HALT) == 0 {

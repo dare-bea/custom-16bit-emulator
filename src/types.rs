@@ -70,33 +70,3 @@ pub mod flag {
     pub const INTERRUPT: u8 = 14;
     pub const HALT: u8 = 15;
 }
-
-pub trait Memory {
-    fn size(&self) -> usize
-    
-    fn read_byte(&self, address: usize) -> u8;
-    fn read_word(&self, address: usize) -> u16;
-    fn write_byte(&mut self, address: usize, value: u8);
-    fn write_word(&mut self, address: usize, value: u16);
-
-    fn read_array<const N: usize>(&self, address: u16) -> [u8; N] {
-        let mut result = [0; N];
-        for i in 0..N {
-            result[i] = self.read_byte(address.wrapping_add(i));
-        }
-    };
-    fn write_array<const N: usize>(&mut self, address: u16, value: [u8; N]) {
-        for i in 0..N {
-            self.write_byte(address.wrapping_add(i), value[i]);
-        }
-    };
-}
-
-impl Memory for [u8] {
-    fn size(&self) -> usize {self.len()}
-    
-    fn read_byte(&self, address: usize) -> u8 {self[address]}
-    fn read_word(&self, address: usize) -> u16 {u16::from_le_bytes([self.read_byte(address), self.read_byte(address + 1)])}
-    fn write_byte(&mut self, address: usize, value: u8) {self[address] = value}
-    fn write_word(&mut self, address: usize, value: u16) {self.write_byte(address, value as u8); self.write_byte(address + 1, (value >> 8) as u8)}
-}

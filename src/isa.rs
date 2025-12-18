@@ -1,3 +1,7 @@
+use crate::types::*;
+use crate::emulator::Emulator;
+use std::io::{Read, stdin};
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
 pub enum Instruction {
     /// Load the value of the given register into the accumulator.
@@ -214,6 +218,12 @@ impl From<Instruction> for Vec<u8> {
     }
 }
 
+impl From<&Instruction> for Vec<u8> {
+    fn from(value: &Instruction) -> Self {
+        Vec::from(*value)
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum InstructionError {
     InvalidOpcode(u8),
@@ -221,18 +231,19 @@ pub enum InstructionError {
 }
 
 impl Instruction {
-    pub fn make_bytes(Vec<Result<Self, &[u8]>>) -> Vec<u8> {
-        let mut bytes = Vec::new();
-        for instruction in instructions {
+    pub fn make_bytes(instructions: &[Result<Self, &[u8]>]) -> Vec<u8> {
+        let mut result = Vec::new();
+        for &instruction in instructions {
             match instruction {
-                Ok(instruction) => bytes.extend_from_slice(&Vec::from(instruction)),
-                Err(bytes) => bytes.extend_from_slice(bytes),
+                Ok(instruction) => result.extend_from_slice(&Vec::from(instruction)),
+                Err(bytes) => result.extend_from_slice(bytes),
             }
         }
+        result
     }
     
     pub fn from_iter<'a>(
-        mut iter: &[u8]>,
+        mut iter: impl Iterator<Item = &'a u8>,
     ) -> Result<(Self, u32), InstructionError> {
         use Instruction::*;
         let mut count = 0u32;
@@ -581,9 +592,10 @@ pub fn execute(&mut self, instruction: Instruction) {
             self.sp = self.sp.wrapping_add(2)
         }
         Instruction::Input => {
-            self.a = match stdin().read_array::<1>() {
-                Ok(arr) => arr[0] as u16,
-                Err(_) => u16::MAX,
+            let mut buf = [0; 1];
+            match stdin().lock().read_exact(&mut buf) {
+                Ok(_) => self.a = buf[0] as u16,
+                Err(_) => self.a = u16::MAX,
             }
         }
         Instruction::Output => {

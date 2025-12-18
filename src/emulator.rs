@@ -1,3 +1,6 @@
+use crate::types::*;
+use crate::isa::*;
+
 const MEM_SIZE: usize = 0x10000;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -49,7 +52,7 @@ impl Emulator {
         }
     }
 
-    fn mut_register(&mut self, reg: GeneralPurposeRegister) -> &mut u16 {
+    pub fn mut_register(&mut self, reg: GeneralPurposeRegister) -> &mut u16 {
         match reg {
             GeneralPurposeRegister::A => &mut self.a,
             GeneralPurposeRegister::B => &mut self.b,
@@ -79,7 +82,7 @@ impl Emulator {
         }
     }
 
-    fn set_operation_flags(&mut self, value: u16) {
+    pub fn set_operation_flags(&mut self, value: u16) {
         self.flags &= !(1 << flag::ZERO | 1 << flag::SIGN | 1 << flag::CARRY | 1 << flag::OVERFLOW);
         if value == 0 {
             self.flags |= 1 << flag::ZERO;
@@ -90,7 +93,9 @@ impl Emulator {
     }
 
     pub fn check_condition(&self, cond: u8) -> bool {
-        use condition::*;
+        use crate::types::condition::*;
+        use crate::types::flag;
+        
         #[allow(unreachable_patterns)]
         match cond {
             ZERO | EQUAL => self.flags & (1 << flag::ZERO) != 0,
