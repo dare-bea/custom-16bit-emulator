@@ -31,14 +31,23 @@ pub enum Instruction {
     /// Load the immediate value into the given register.
     LoadImmediate(GeneralPurposeRegister, u16),
 
-    /// Load the value at the given address into the accumulator.
+    /// Load the word at the given address into the accumulator.
     LoadAddress(u16),
-    /// Load the value at the address in the base register into the accumulator.
+    /// Load the word at the address in the base register into the accumulator.
     LoadIndirect,
-    /// Load the value at the given address relative to the base register into the accumulator.
+    /// Load the word at the given address relative to the base register into the accumulator.
     LoadOffset(u16),
-    /// Load the value at the given address relative to the stack pointer into the accumulator.
+    /// Load the word at the given address relative to the stack pointer into the accumulator.
     LoadStackOffset(u16),
+
+    /// Load the byte at the given address into the accumulator.
+    LoadByteAddress(u16),
+    /// Load the byte at the address in the base register into the accumulator.
+    LoadByteIndirect,
+    /// Load the byte at the given address relative to the base register into the accumulator.
+    LoadByteOffset(u16),
+    /// Load the byte at the given address relative to the stack pointer into the accumulator.
+    LoadByteStackOffset(u16),
 
     /// Store the lower byte of the accumulator to the given address.
     StoreByteAddress(u16),
@@ -109,7 +118,6 @@ pub enum Instruction {
     LoopOffset(u16),
     /// Decrement the counter register and jump to the given address relative to the next instruction if the counter register is not zero.
     LoopRelative(u16),
-    
 
     /// Call a subroutine at the given address.
     Call(u16),
@@ -159,6 +167,11 @@ impl From<Instruction> for Vec<u8> {
             LoadIndirect => vec![0x11],
             LoadOffset(offset) => vec![0x12, offset as u8, (offset >> 8) as u8],
             LoadStackOffset(offset) => vec![0x13, offset as u8, (offset >> 8) as u8],
+
+            LoadByteAddress(address) => vec![0x14, address as u8, (address >> 8) as u8],
+            LoadByteIndirect => vec![0x15],
+            LoadByteOffset(offset) => vec![0x16, offset as u8, (offset >> 8) as u8],
+            LoadByteStackOffset(offset) => vec![0x17, offset as u8, (offset >> 8) as u8],
 
             StoreAddress(address) => vec![0x18, address as u8, (address >> 8) as u8],
             StoreIndirect => vec![0x19],
@@ -222,6 +235,7 @@ impl From<Instruction> for Vec<u8> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum InstructionError {
     InvalidOpcode(u8),
     EndOfInput,
@@ -261,6 +275,10 @@ impl Instruction {
             0x11 => LoadIndirect,
             0x12 => LoadOffset(u16::from_le_bytes([next_byte()?, next_byte()?])),
             0x13 => LoadStackOffset(u16::from_le_bytes([next_byte()?, next_byte()?])),
+            0x14 => LoadByteAddress(u16::from_le_bytes([next_byte()?, next_byte()?])),
+            0x15 => LoadByteIndirect,
+            0x16 => LoadByteOffset(u16::from_le_bytes([next_byte()?, next_byte()?])),
+            0x17 => LoadByteStackOffset(u16::from_le_bytes([next_byte()?, next_byte()?])),
             0x18 => StoreAddress(u16::from_le_bytes([next_byte()?, next_byte()?])),
             0x19 => StoreIndirect,
             0x1A => StoreOffset(u16::from_le_bytes([next_byte()?, next_byte()?])),
@@ -282,7 +300,9 @@ impl Instruction {
             0x48..=0x4B => AddWithCarry(register),
             0x4C..=0x4F => SubtractWithBorrow(register),
             0x50..=0x53 => CompareA(register),
-            0x54..=0x58 => CompareImmediate(register, u16::from_le_bytes([next_byte()?, next_byte()?])),
+            0x54..=0x58 => {
+                CompareImmediate(register, u16::from_le_bytes([next_byte()?, next_byte()?]))
+            }
             0x60 => Jump(u16::from_le_bytes([next_byte()?, next_byte()?])),
             0x61 => JumpOffset(u16::from_le_bytes([next_byte()?, next_byte()?])),
             0x62 => JumpRelative(u16::from_le_bytes([next_byte()?, next_byte()?])),
@@ -447,8 +467,12 @@ impl Emulator {
         }
     }
 
+    pub fn next_instruction(&self) -> Result<(Instruction, u32), InstructionError> {
+        Instruction::from_iter(self.memory.iter().cycle().skip(self.pc as usize))
+    }
+
     pub fn advance(&mut self) {
-        match Instruction::from_iter(self.memory.iter().cycle().skip(self.pc as usize)) {
+        match self.next_instruction() {
             Ok((instruction, count)) => {
                 self.pc = self.pc.wrapping_add(count as u16);
                 self.execute(instruction);
@@ -493,6 +517,14 @@ impl Emulator {
                     self.memory[(self.sp + offset) as usize],
                     self.memory[(self.sp + offset) as usize + 1],
                 ])
+            }
+            Instruction::LoadByteAddress(address) => self.a = self.memory[address as usize] as u16,
+            Instruction::LoadByteIndirect => self.a = self.memory[self.b as usize] as u16,
+            Instruction::LoadByteOffset(offset) => {
+                self.a = self.memory[(self.b + offset) as usize] as u16
+            }
+            Instruction::LoadByteStackOffset(offset) => {
+                self.a = self.memory[(self.sp + offset) as usize] as u16
             }
             Instruction::StoreAddress(address) => {
                 self.memory[address as usize] = self.a as u8;
@@ -706,13 +738,15 @@ impl Emulator {
                 ]);
                 self.sp = self.sp.wrapping_add(2)
             }
-            Instruction::Input => self.a = match stdin().read_array::<1>() {
-                Ok(arr) => arr[0] as u16,
-                Err(_) => u16::MAX,
-            },
+            Instruction::Input => {
+                self.a = match stdin().read_array::<1>() {
+                    Ok(arr) => arr[0] as u16,
+                    Err(_) => u16::MAX,
+                }
+            }
             Instruction::Output => {
                 print!("{}", self.a as u8 as char)
-            },
+            }
             Instruction::SetInterrupt(address) => {
                 self.memory[0xFFFE] = address as u8;
                 self.memory[0xFFFF] = (address >> 8) as u8
@@ -779,37 +813,55 @@ impl Emulator {
     pub fn new_rom(assembly: &[Result<Instruction, &[u8]>]) -> impl Iterator<Item = u8> {
         assembly.iter().flat_map(|&x| match x {
             Ok(i) => Vec::from(i),
-            Err(v) => Vec::from(v)
+            Err(v) => Vec::from(v),
         })
     }
 }
 
 fn main() {
-    use Instruction::*;
     use GeneralPurposeRegister::*;
+    use Instruction::*;
     let mut emu = Emulator::new([]);
-    
-    emu.load_rom(0x0000, Emulator::new_rom(&[
-        /* $0000 */ Ok(LoadImmediate(B, 0x4000)),
-        /* $0003 */ Ok(Call(0x2000)),
-        /* $0006 */ Ok(Set(flag::HALT)),
-    ]));
 
-    emu.load_rom(0x2000, Emulator::new_rom(&[
-        /* $2000 */ Ok(LoadIndirect),
-        /* $2001 */ Ok(And(A)),
-        /* $2002 */ Ok(JumpRelativeIf(condition::ZERO, 5)),
-        /* $2005 */ Ok(Output),
-        /* $2006 */ Ok(Increment(B)),
-        /* $2007 */ Ok(JumpRelative(-10i16 as u16)),
-        /* $200A */ Ok(Return),
-    ]));
+    emu.load_rom(
+        0x0000,
+        Emulator::new_rom(&[
+            /* $0000 */ Ok(LoadImmediate(B, 0x4000)),
+            /* $0003 */ Ok(Call(0x2000)),
+            /* $0006 */ Ok(Set(flag::HALT)),
+        ]),
+    );
 
-    emu.load_rom(0x4000, Emulator::new_rom(&[
-        /* $4000 */ Err("Hello World!\n\0".as_bytes()),
-    ]));
+    emu.load_rom(
+        0x2000,
+        Emulator::new_rom(&[
+            /* $2000 */ Ok(LoadByteIndirect),
+            /* $2001 */ Ok(And(A)),
+            /* $2002 */ Ok(JumpRelativeIf(condition::ZERO, 5)),
+            /* $2005 */ Ok(Output),
+            /* $2006 */ Ok(Increment(B)),
+            /* $2007 */ Ok(JumpRelative(-10i16 as u16)),
+            /* $200A */ Ok(Return),
+        ]),
+    );
+
+    emu.load_rom(
+        0x4000,
+        Emulator::new_rom(&[/* $4000 */ Err("Hello World!\n\0".as_bytes())]),
+    );
 
     while emu.flags & (1 << flag::HALT) == 0 {
+        eprintln!(
+            "A: {:04X} | B: {:04X} | C: {:04X} | D: {:04X}  |  SP: {:04X}  |  FLAGS: {:016b}  |  PC: {:04X}  |  {:?}",
+            emu.a,
+            emu.b,
+            emu.c,
+            emu.d,
+            emu.sp,
+            emu.flags,
+            emu.pc,
+            emu.next_instruction()
+        );
         emu.advance();
     }
 }
