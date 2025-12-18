@@ -1,4 +1,3 @@
-
 pub const ZERO: u8 = 0;
 pub const SIGN: u8 = 1;
 pub const CARRY: u8 = 2;
