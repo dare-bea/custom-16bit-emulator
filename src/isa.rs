@@ -126,6 +126,11 @@ pub enum Instruction {
     /// Pop the flags from the stack.
     PopFlags,
 
+    /// Call an interrupt by pushing the program counter, flags, and registers onto the stack. Sets the source of the interrupt to the data register.
+    CallInterrupt,
+    /// Return from an interrupt by popping the program counter, flags, and registers from the stack.
+    ReturnInterrupt,
+
     /// Read the port specified by the data register into the accumulator.
     Input,
     /// Write the accumulator to the port specified by the data register.
@@ -214,6 +219,8 @@ impl From<Instruction> for Vec<u8> {
             Output => vec![0xB1],
 
             SetInterrupt(address) => vec![0xD0, address as u8, (address >> 8) as u8],
+            CallInterrupt => vec![0xD1],
+            ReturnInterrupt => vec![0xD2],
             Clear(flag) => vec![0xE0 | flag],
             Set(flag) => vec![0xF0 | flag],
         }
@@ -336,6 +343,8 @@ impl Instruction {
             0xB0 => Input,
             0xB1 => Output,
             0xD0 => SetInterrupt(u16::from_le_bytes([next_byte()?, next_byte()?])),
+            0xD1 => CallInterrupt,
+            0xD2 => ReturnInterrupt,
             0xE0..=0xEF => Clear(opcode & 0xF),
             0xF0..=0xFF => Set(opcode & 0xF),
 
@@ -572,6 +581,8 @@ impl<M: Memory> Emulator<M> {
                 print!("{}", self.a as u8 as char)
             }
             Instruction::SetInterrupt(address) => self.memory.write_word(0xFFFE, address),
+            Instruction::CallInterrupt => self.interrupt(self.d),
+            Instruction::ReturnInterrupt => self.handle_interrupt_return(),
             Instruction::Clear(flag) => self.flags &= !(1 << flag),
             Instruction::Set(flag) => self.flags |= 1 << flag,
         }
