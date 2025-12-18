@@ -150,7 +150,7 @@ impl From<Instruction> for Vec<u8> {
     fn from(value: Instruction) -> Self {
         use Instruction::*;
         match value {
-            LoadFrom(reg) => vec![0x00 | reg as u8],
+            LoadFrom(reg) => vec![(reg as u8)],
             StoreTo(reg) => vec![0x04 | reg as u8],
             Zero(reg) => vec![0x08 | reg as u8],
             LoadImmediate(reg, value) => vec![0x0C | reg as u8, value as u8, (value >> 8) as u8],
@@ -196,12 +196,12 @@ impl From<Instruction> for Vec<u8> {
             CallOffset(offset) => vec![0x69, offset as u8, (offset >> 8) as u8],
             CallRelative(offset) => vec![0x6A, offset as u8, (offset >> 8) as u8],
 
-            JumpIf(cond, address) => vec![0x70 | cond as u8, address as u8, (address >> 8) as u8],
+            JumpIf(cond, address) => vec![0x70 | cond, address as u8, (address >> 8) as u8],
             JumpOffsetIf(cond, offset) => {
-                vec![0x80 | cond as u8, offset as u8, (offset >> 8) as u8]
+                vec![0x80 | cond, offset as u8, (offset >> 8) as u8]
             }
             JumpRelativeIf(cond, offset) => {
-                vec![0x90 | cond as u8, offset as u8, (offset >> 8) as u8]
+                vec![0x90 | cond, offset as u8, (offset >> 8) as u8]
             }
 
             Push => vec![0xA0],
@@ -216,8 +216,8 @@ impl From<Instruction> for Vec<u8> {
             Output => vec![0xB1],
 
             SetInterrupt(address) => vec![0xD0, address as u8, (address >> 8) as u8],
-            Clear(flag) => vec![0xE0 | flag as u8],
-            Set(flag) => vec![0xF0 | flag as u8],
+            Clear(flag) => vec![0xE0 | flag],
+            Set(flag) => vec![0xF0 | flag],
         }
     }
 }
@@ -734,6 +734,7 @@ impl Emulator {
 
     pub fn check_condition(&self, cond: u8) -> bool {
         use condition::*;
+        #[allow(unreachable_patterns)]
         match cond {
             ZERO | EQUAL => self.flags & (1 << flag::ZERO) != 0,
             SIGN => self.flags & (1 << flag::SIGN) != 0,
@@ -766,9 +767,9 @@ impl Emulator {
 
 impl Emulator {
     /// Load ROM starting at an address.
-    pub fn load_rom(&mut self, start: u16, mut data: impl Iterator<Item = u8>) {
+    pub fn load_rom(&mut self, start: u16, data: impl Iterator<Item = u8>) {
         let mut address = start as usize;
-        while let Some(byte) = data.next() {
+        for byte in data {
             self.memory[address] = byte;
             address += 1;
         }
@@ -776,10 +777,10 @@ impl Emulator {
 
     /// Make ROM data from instructions or raw bytes.
     pub fn new_rom(assembly: &[Result<Instruction, &[u8]>]) -> impl Iterator<Item = u8> {
-        assembly.iter().map(|&x| match x {
+        assembly.iter().flat_map(|&x| match x {
             Ok(i) => Vec::from(i),
             Err(v) => Vec::from(v)
-        }).flatten()
+        })
     }
 }
 
