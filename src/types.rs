@@ -1,0 +1,102 @@
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
+#[repr(u8)]
+pub enum GeneralPurposeRegister {
+    A,
+    B,
+    C,
+    D,
+}
+
+pub mod condition {
+    /// Zero flag is set. Equivalent to `[condition::EQUAL]`.
+    pub const ZERO: u8 = 0;
+    /// Zero flag is set. Equivalent to `[condition::ZERO]`.
+    pub const EQUAL: u8 = 0;
+    /// Sign flag is set.
+    pub const SIGN: u8 = 1;
+    /// Carry flag is set. Equivalent to `[condition::BELOW]`, `[condition::NOT_ABOVE_EQUAL]`.
+    pub const CARRY: u8 = 2;
+    /// Carry flag is set. Equivalent to `[condition::CARRY]`, `[condition::NOT_ABOVE_EQUAL]`.
+    pub const BELOW: u8 = 2;
+    /// Carry flag is set. Equivalent to `[condition::CARRY]`, `[condition::BELOW]`.
+    pub const NOT_ABOVE_EQUAL: u8 = 2;
+    /// Overflow flag is set.
+    pub const OVERFLOW: u8 = 3;
+    /// Carry or zero flag is set. Equivalent to `[condition::NOT_ABOVE]`.
+    pub const BELOW_EQUAL: u8 = 5;
+    /// Carry or zero flag is set. Equivalent to `[condition::BELOW_EQUAL]`.
+    pub const NOT_ABOVE: u8 = 5;
+    /// Zero flag is set or sign flag is not equal to overflow flag. Equivalent to `[condition::NOT_GREATER]`.
+    pub const LESS_EQUAL: u8 = 6;
+    /// Zero flag is set or sign flag is not equal to overflow flag. Equivalent to `[condition::LESS_EQUAL]`.
+    pub const NOT_GREATER: u8 = 6;
+    /// Sign flag is not equal to overflow flag. Equivalent to `[condition::NOT_GREATER_EQUAL]`.
+    pub const LESS: u8 = 7;
+    /// Sign flag is not equal to overflow flag. Equivalent to `[condition::LESS]`.
+    pub const NOT_GREATER_EQUAL: u8 = 7;
+    /// Zero flag is clear. Equivalent to `[condition::NOT_EQUAL]`.
+    pub const NOT_ZERO: u8 = 8;
+    /// Zero flag is clear. Equivalent to `[condition::NOT_ZERO]`.
+    pub const NOT_EQUAL: u8 = 8;
+    /// Sign flag is clear.
+    pub const NOT_SIGN: u8 = 9;
+    /// Carry flag is clear. Equivalent to `[condition::ABOVE]`, `[condition::NOT_BELOW_EQUAL]`.
+    pub const NOT_CARRY: u8 = 10;
+    /// Carry flag is clear. Equivalent to `[condition::NOT_CARRY]`, `[condition::NOT_BELOW_EQUAL]`.
+    pub const ABOVE: u8 = 10;
+    /// Carry flag is clear. Equivalent to `[condition::NOT_CARRY]`, `[condition::ABOVE]`.
+    pub const NOT_BELOW_EQUAL: u8 = 10;
+    /// Overflow flag is clear.
+    pub const NOT_OVERFLOW: u8 = 11;
+    /// Carry and zero flags are clear. Equivalent to `[condition::ABOVE_EQUAL]`.
+    pub const NOT_BELOW: u8 = 13;
+    /// Carry and zero flags are clear. Equivalent to `[condition::NOT_BELOW]`.
+    pub const ABOVE_EQUAL: u8 = 13;
+    /// Zero flag is clear or sign flag is equal to overflow flag. Equivalent to `[condition::GREATER]`.
+    pub const NOT_LESS_EQUAL: u8 = 14;
+    /// Zero flag is clear or sign flag is equal to overflow flag. Equivalent to `[condition::NOT_LESS_EQUAL]`.
+    pub const GREATER: u8 = 14;
+    /// Sign flag is equal to overflow flag. Equivalent to `[condition::GREATER_EQUAL]`.
+    pub const NOT_LESS: u8 = 15;
+    /// Sign flag is equal to overflow flag. Equivalent to `[condition::NOT_LESS]`.
+    pub const GREATER_EQUAL: u8 = 15;
+}
+
+pub mod flag {
+    pub const ZERO: u8 = 0;
+    pub const SIGN: u8 = 1;
+    pub const CARRY: u8 = 2;
+    pub const OVERFLOW: u8 = 3;
+    pub const INTERRUPT: u8 = 14;
+    pub const HALT: u8 = 15;
+}
+
+pub trait Memory {
+    fn size(&self) -> usize
+    
+    fn read_byte(&self, address: usize) -> u8;
+    fn read_word(&self, address: usize) -> u16;
+    fn write_byte(&mut self, address: usize, value: u8);
+    fn write_word(&mut self, address: usize, value: u16);
+
+    fn read_array<const N: usize>(&self, address: u16) -> [u8; N] {
+        let mut result = [0; N];
+        for i in 0..N {
+            result[i] = self.read_byte(address.wrapping_add(i));
+        }
+    };
+    fn write_array<const N: usize>(&mut self, address: u16, value: [u8; N]) {
+        for i in 0..N {
+            self.write_byte(address.wrapping_add(i), value[i]);
+        }
+    };
+}
+
+impl Memory for [u8] {
+    fn size(&self) -> usize {self.len()}
+    
+    fn read_byte(&self, address: usize) -> u8 {self[address]}
+    fn read_word(&self, address: usize) -> u16 {u16::from_le_bytes([self.read_byte(address), self.read_byte(address + 1)])}
+    fn write_byte(&mut self, address: usize, value: u8) {self[address] = value}
+    fn write_word(&mut self, address: usize, value: u16) {self.write_byte(address, value as u8); self.write_byte(address + 1, (value >> 8) as u8)}
+}

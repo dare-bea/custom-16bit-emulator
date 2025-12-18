@@ -21,3 +21,7 @@ An emulator for a custom 16-bit computer
 ## Instruction Set
 
 - [ ] [instructions.csv](instructions.csv).
+
+## Memory Layout
+
+- 
