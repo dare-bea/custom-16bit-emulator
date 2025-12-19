@@ -95,6 +95,12 @@ pub struct Emulator {
     pub cpu: CPU,
 }
 
+impl Default for Emulator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Emulator {
     pub fn new() -> Self {
         let mut emu = Emulator {

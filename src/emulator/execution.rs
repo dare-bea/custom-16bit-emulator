@@ -58,7 +58,6 @@ impl Emulator {
     }
 
     pub fn execute_cpu_instruction(&mut self, instruction: &Instruction) {
-        let instruction = instruction;
         match *instruction {
             LoadImmediate(reg, value) => {
                 *self.cpu.mut_register(reg) = value;
@@ -175,7 +174,7 @@ impl Emulator {
                 let (result, carry) = self
                     .cpu
                     .a
-                    .carrying_add(self.cpu.register(reg) as u16, carry_before);
+                    .carrying_add(self.cpu.register(reg), carry_before);
                 let (_, overflow) = (self.cpu.a as i16)
                     .carrying_add((self.cpu.register(reg) + carry as u16) as i16, carry_before);
                 self.cpu.a = result;
@@ -189,7 +188,7 @@ impl Emulator {
                 let (result, carry) = self
                     .cpu
                     .a
-                    .borrowing_sub(self.cpu.register(reg) as u16, carry_before);
+                    .borrowing_sub(self.cpu.register(reg), carry_before);
                 let (_, overflow) = (self.cpu.a as i16)
                     .borrowing_sub((self.cpu.register(reg) - carry as u16) as i16, carry_before);
                 self.cpu.a = result;

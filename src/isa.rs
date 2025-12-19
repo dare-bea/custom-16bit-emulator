@@ -65,7 +65,7 @@ impl From<Instruction> for Vec<u8> {
     fn from(value: Instruction) -> Self {
         use Instruction::*;
         match value {
-            LoadImmediate(reg, imm) => vec![0x00 | (reg as u8), imm as u8, (imm >> 8) as u8],
+            LoadImmediate(reg, imm) => vec![(reg as u8), imm as u8, (imm >> 8) as u8],
             LoadAddressAbsolute(addr) => vec![0x08, addr as u8, (addr >> 8) as u8],
             LoadAddressStackOffset(offset) => vec![0x09, offset as u8],
             LoadAddressIndirect(addr, reg) => {
@@ -155,7 +155,7 @@ impl Instruction {
         result
     }
 
-    fn next_byte<'a>(
+    fn next_byte(
         iter: &mut impl Iterator<Item = u8>,
         count: &mut u32,
     ) -> Result<u8, InstructionError> {
@@ -168,7 +168,7 @@ impl Instruction {
         }
     }
 
-    fn next_word<'a>(
+    fn next_word(
         iter: &mut impl Iterator<Item = u8>,
         count: &mut u32,
     ) -> Result<u16, InstructionError> {
@@ -177,7 +177,7 @@ impl Instruction {
         Ok(u16::from_le_bytes([low, high]))
     }
 
-    pub fn try_from_iter<'a>(
+    pub fn try_from_iter(
         iter: impl IntoIterator<Item = u8>,
     ) -> Result<(Self, u32), InstructionError> {
         use Instruction::*;
