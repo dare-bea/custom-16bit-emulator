@@ -8,60 +8,67 @@
 //! The GPRs may be used for any arithmetic operation.
 
 use asm::condition;
-use asm::emulator::{Emulator};
+use asm::emulator::Emulator;
 use asm::flag;
 use asm::isa::Instruction;
+use asm::memory::Memory;
 use asm::register::Register;
 
 fn main() {
-    use Register::*;
     use Instruction::*;
+    use Register::*;
 
     let print_status: bool = false;
 
-    let mut emu = Emulator::<[u8; MEM_SIZE]>::new([0; MEM_SIZE]);
+    let mut emu = Emulator::new();
 
-    emu.memory.write_array(
+    emu.memory.rom.unlock();
+
+    emu.memory.rom.load(
         0x0000,
         &Instruction::make_bytes(&[
-            /* $0000 */ Ok(LoadImmediate(B, 0x4000)),
-            /* $0003 */ Ok(Call(0x2000)),
-            /* $0006 */ Ok(Set(flag::HALT)),
+            /* $8000 */ Ok(LoadImmediate(B, 0xC000)),
+            /* $8003 */ Ok(Call(0xA000)),
+            /* $8006 */ Ok(SetFlags(1 << flag::HALT)),
         ]),
     );
 
-    emu.memory.write_array(
+    emu.memory.rom.load(
         0x2000,
         &Instruction::make_bytes(&[
-            /* $2000 */ Ok(LoadByteIndirect),
-            /* $2001 */ Ok(And(A)),
-            /* $2002 */ Ok(JumpRelativeIf(condition::ZERO, 5)),
-            /* $2005 */ Ok(Output),
-            /* $2006 */ Ok(Increment(B)),
-            /* $2007 */ Ok(JumpRelative(-10i16 as u16)),
-            /* $200A */ Ok(Return),
+            /* $A000 */ Ok(LoadAddressIndirect(0, B)),
+            /* $A003 */ Ok(And(A)),
+            /* $A004 */ Ok(JumpIf(condition::ZERO, 0xA00E)),
+            /* $A007 */ Ok(StoreAddressAbsolute(0x6000)),
+            /* $A00A */ Ok(Increment(B)),
+            /* $A00B */ Ok(JumpAbsolute(0xA000)),
+            /* $A00E */ Ok(PopPC),
         ]),
     );
 
-    emu.memory.write_array(
+    emu.memory.rom.load(
         0x4000,
-        &Instruction::make_bytes(&[/* $4000 */ Err("Hello, World!\n\0".as_bytes())]),
+        &Instruction::make_bytes(&[/* $C000 */ Err("Hello, World!\n\0".as_bytes())]),
     );
 
-    while emu.flags & (1 << flag::HALT) == 0 {
+    emu.memory.rom.load(
+        0x7FFE,
+        &Instruction::make_bytes(&[Err(0x8000u16.to_le_bytes().as_ref())]),
+    );
+
+    emu.memory.rom.lock();
+    emu.reset();
+    if print_status {
+        eprintln!("Initial CPU State: {:?}", emu.cpu);
+    }
+    while emu.is_running() {
         if print_status {
-            eprintln!(
-                "A: {:04X} | B: {:04X} | C: {:04X} | D: {:04X}  |  SP: {:04X}  |  FLAGS: {:016b}  |  PC: {:04X}  |  {:?}",
-                emu.a,
-                emu.b,
-                emu.c,
-                emu.d,
-                emu.sp,
-                emu.flags,
-                emu.pc,
-                emu.next_instruction()
-            );
+            eprint!("{:04x} ", emu.cpu.pc);
+            eprint!("- {:?} ", emu.next_cpu_instruction());
         }
         emu.advance();
+        if print_status {
+            eprintln!("- {:?}", emu.cpu);
+        }
     }
 }

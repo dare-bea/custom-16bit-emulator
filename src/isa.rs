@@ -110,17 +110,17 @@ impl From<Instruction> for Vec<u8> {
             JumpAbsolute(addr) => vec![0xC0, addr as u8, (addr >> 8) as u8],
             JumpNear(offset) => vec![0xC1, offset as u8],
             JumpStackOffset(offset) => vec![0xC2, offset as u8],
+            Call(addr) => vec![0xC3, addr as u8, (addr >> 8) as u8],
             JumpIndirect(addr, reg) => {
                 vec![0xC4 | (reg as u8), addr as u8, (addr >> 8) as u8]
             }
             JumpIf(cond, addr) => vec![0xD0 | (cond & 0xF), addr as u8, (addr >> 8) as u8],
-            Call(addr) => vec![0xE0, addr as u8, (addr >> 8) as u8],
-            PushPC => vec![0xF2],
-            PopPC => vec![0xF3],
-            PushFlags => vec![0xF4],
-            PopFlags => vec![0xF5],
-            PushRegister(reg) => vec![0xF8 | (reg as u8)],
-            PopRegister(reg) => vec![0xFC | (reg as u8)],
+            PushPC => vec![0xE4],
+            PopPC => vec![0xE5],
+            PushFlags => vec![0xE6],
+            PopFlags => vec![0xE7],
+            PushRegister(reg) => vec![0xE8 | (reg as u8)],
+            PopRegister(reg) => vec![0xEC | (reg as u8)],
             ClearInterruptRequest(irq) => vec![0xF0, irq],
             SetInterruptRequest(irq) => vec![0xF1, irq],
             WaitForInterrupt => vec![0xF2],
@@ -156,20 +156,20 @@ impl Instruction {
     }
 
     fn next_byte<'a>(
-        iter: &mut impl Iterator<Item = &'a u8>,
+        iter: &mut impl Iterator<Item = u8>,
         count: &mut u32,
     ) -> Result<u8, InstructionError> {
         match iter.next() {
             Some(byte) => {
                 *count += 1;
-                Ok(*byte)
+                Ok(byte)
             }
             None => Err(InstructionError::EndOfInput),
         }
     }
 
     fn next_word<'a>(
-        iter: &mut impl Iterator<Item = &'a u8>,
+        iter: &mut impl Iterator<Item = u8>,
         count: &mut u32,
     ) -> Result<u16, InstructionError> {
         let low = Self::next_byte(iter, count)?;
@@ -178,7 +178,7 @@ impl Instruction {
     }
 
     pub fn try_from_iter<'a>(
-        iter: impl IntoIterator<Item = &'a u8>,
+        iter: impl IntoIterator<Item = u8>,
     ) -> Result<(Self, u32), InstructionError> {
         use Instruction::*;
         let mut iter = iter.into_iter();
@@ -240,18 +240,18 @@ impl Instruction {
             0xC0 => JumpAbsolute(Self::next_word(&mut iter, &mut count)?),
             0xC1 => JumpNear(Self::next_byte(&mut iter, &mut count)? as i8),
             0xC2 => JumpStackOffset(Self::next_byte(&mut iter, &mut count)? as i8),
+            0xC3 => Call(Self::next_word(&mut iter, &mut count)?),
             0xC4..=0xC7 => JumpIndirect(Self::next_word(&mut iter, &mut count)?, register),
-            0xC8..=0xCF => {
+            0xD0..=0xDF => {
                 let cond = opcode & 0x0F;
                 JumpIf(cond, Self::next_word(&mut iter, &mut count)?)
-            },
-            0xD0 => Call(Self::next_word(&mut iter, &mut count)?),
-            0xD4 => PushPC,
-            0xD5 => PopPC,
-            0xD6 => PushFlags,
-            0xD7 => PopFlags,
-            0xD8..=0xDB => PushRegister(register),
-            0xDC..=0xDF => PopRegister(register),
+            }
+            0xE4 => PushPC,
+            0xE5 => PopPC,
+            0xE6 => PushFlags,
+            0xE7 => PopFlags,
+            0xE8..=0xEB => PushRegister(register),
+            0xEC..=0xEF => PopRegister(register),
             0xF0 => ClearInterruptRequest(Self::next_byte(&mut iter, &mut count)?),
             0xF1 => SetInterruptRequest(Self::next_byte(&mut iter, &mut count)?),
             0xF2 => WaitForInterrupt,

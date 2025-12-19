@@ -26,4 +26,8 @@ pub trait Memory {
         }
         buffer
     }
+
+    fn iter(&self, start: usize) -> impl Iterator<Item = u8> {
+        (start..).map(move |addr| self.read(addr))
+    }
 }
