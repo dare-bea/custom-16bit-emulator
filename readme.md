@@ -1,6 +1,6 @@
-# Custom 16-bit Computer
+# Custom 16-bit Console Emulator
 
-An emulator for a custom 16-bit computer
+An emulator for a custom 16-bit console.
 
 ## Registers
 
@@ -9,7 +9,7 @@ An emulator for a custom 16-bit computer
 - [x] Counter Register: Used for loops
 - [x] Data Register: Used for I/O ports
 - [x] Program Counter
-- [ ] Stack Pointer
+- [x] Stack Pointer
 - [x] Flags
     - [x] Zero
     - [x] Sign
@@ -24,4 +24,8 @@ An emulator for a custom 16-bit computer
 
 ## Memory Layout
 
-- 
+0x10000 bytes of addressable memory (64KiB)
+
+- 0x8000 - 0xFFFF: ROM
+    - 0xFFE0 - 0xFFFF: Interrupt Vector Table
+        - 0xFFE0: Reset Vector

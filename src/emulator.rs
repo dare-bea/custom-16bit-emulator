@@ -1,6 +1,6 @@
 use crate::isa::{Instruction, InstructionError};
 use crate::flag;
-use crate::register::GeneralPurposeRegister;
+use crate::register::Register;
 use crate::memory::Memory;
 
 pub const MEM_SIZE: usize = 0x10000;
@@ -39,21 +39,21 @@ impl<M: Memory> Emulator<M> {
         }
     }
 
-    pub fn register(&self, reg: GeneralPurposeRegister) -> u16 {
+    pub fn register(&self, reg: Register) -> u16 {
         match reg {
-            GeneralPurposeRegister::A => self.a,
-            GeneralPurposeRegister::B => self.b,
-            GeneralPurposeRegister::C => self.c,
-            GeneralPurposeRegister::D => self.d,
+            Register::A => self.a,
+            Register::B => self.b,
+            Register::C => self.c,
+            Register::D => self.d,
         }
     }
 
-    pub fn mut_register(&mut self, reg: GeneralPurposeRegister) -> &mut u16 {
+    pub fn mut_register(&mut self, reg: Register) -> &mut u16 {
         match reg {
-            GeneralPurposeRegister::A => &mut self.a,
-            GeneralPurposeRegister::B => &mut self.b,
-            GeneralPurposeRegister::C => &mut self.c,
-            GeneralPurposeRegister::D => &mut self.d,
+            Register::A => &mut self.a,
+            Register::B => &mut self.b,
+            Register::C => &mut self.c,
+            Register::D => &mut self.d,
         }
     }
 

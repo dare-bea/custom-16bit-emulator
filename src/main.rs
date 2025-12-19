@@ -12,10 +12,10 @@ use asm::emulator::{Emulator, MEM_SIZE};
 use asm::flag;
 use asm::isa::Instruction;
 use asm::memory::Memory;
-use asm::register::GeneralPurposeRegister;
+use asm::register::Register;
 
 fn main() {
-    use GeneralPurposeRegister::*;
+    use Register::*;
     use Instruction::*;
 
     let print_status: bool = false;
