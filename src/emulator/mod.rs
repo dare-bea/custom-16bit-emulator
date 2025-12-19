@@ -1,103 +1,11 @@
-use crate::memory::Memory;
-use std::io::{stdin, Read};
+use crate::memory::{Memory};
+
+pub mod cpu;
+pub mod memory;
 pub mod execution;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct Cartridge {
-    data: [u8; 0x8000],
-    locked: bool,
-}
-
-impl Cartridge {
-    pub fn unlock(&mut self) {
-        self.locked = false;
-    }
-
-    pub fn lock(&mut self) {
-        self.locked = true;
-    }
-}
-
-impl Memory for Cartridge {
-    fn read(&self, address: usize) -> u8 {
-        self.data[address]
-    }
-
-    fn write(&mut self, address: usize, value: u8) {
-        if !self.locked {
-            self.data[address] = value;
-        } else {
-            eprintln!(
-                "Attempted to write to locked ROM at address {:04x}",
-                address
-            );
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct RAM<const N: usize> {
-    data: [u8; N],
-}
-
-impl<const N: usize> Memory for RAM<N> {
-    fn read(&self, address: usize) -> u8 {
-        self.data[address]
-    }
-
-    fn write(&mut self, address: usize, value: u8) {
-        self.data[address] = value;
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct MMU {
-    pub ram: RAM<0x2000>,
-    pub rom: Cartridge,
-}
-
-impl Memory for MMU {
-    fn read(&self, address: usize) -> u8 {
-        match address {
-            0x0000..0x2000 => self.ram.read(address),
-            0x7F00 => {
-                // Memory-mapped I/O for input
-                stdin()
-                    .lock()
-                    .bytes()
-                    .next()
-                    .and_then(|result| result.ok())
-                    .unwrap_or(u8::MAX)
-            }
-            0x8000..0x10000 => self.rom.read(address - 0x8000),
-            _ => panic!("Invalid read address {address:#X}"),
-        }
-    }
-
-    fn write(&mut self, address: usize, value: u8) {
-        match address {
-            0x0000..0x2000 => self.ram.write(address, value),
-            0x7F00 => {
-                // Memory-mapped I/O for printing characters
-                print!("{}", value as char);
-            }
-            0x8000..0x10000 => self.rom.write(address - 0x8000, value),
-            _ => panic!("Invalid write address {address:#X}"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct CPU {
-    pub a: u16,
-    pub b: u16,
-    pub c: u16,
-    pub d: u16,
-    pub pc: u16,
-    pub sp: u16,
-    pub flags: u8,
-    pub ir_flags: u16,
-}
+use cpu::CPU;
+use memory::{Cartridge, MMU, RAM};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Emulator {
@@ -107,18 +15,15 @@ pub struct Emulator {
 
 impl Default for Emulator {
     fn default() -> Self {
-        Self::new()
+        Self::new(Cartridge::default())
     }
 }
 
 impl Emulator {
-    pub fn new() -> Self {
+    pub fn new(rom: Cartridge) -> Self {
         let mut emu = Emulator {
             memory: MMU {
-                rom: Cartridge {
-                    data: [0; 0x8000],
-                    locked: true,
-                },
+                rom,
                 ram: RAM { data: [0; 0x2000] },
             },
             cpu: CPU {
@@ -132,13 +37,6 @@ impl Emulator {
                 ir_flags: 0,
             },
         };
-        emu.reset();
-        emu
-    }
-
-    pub fn from_rom(rom_data: &[u8]) -> Self {
-        let mut emu = Emulator::new();
-        emu.memory.rom.load(0, rom_data);
         emu.reset();
         emu
     }

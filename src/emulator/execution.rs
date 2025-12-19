@@ -1,28 +1,6 @@
 use crate::flag;
 use crate::isa::Instruction::{self, *};
-use crate::register::Register;
-
-use super::{CPU, Emulator, Memory};
-
-impl CPU {
-    pub fn register(&self, reg: Register) -> u16 {
-        match reg {
-            Register::A => self.a,
-            Register::B => self.b,
-            Register::C => self.c,
-            Register::D => self.d,
-        }
-    }
-
-    pub fn mut_register(&mut self, reg: Register) -> &mut u16 {
-        match reg {
-            Register::A => &mut self.a,
-            Register::B => &mut self.b,
-            Register::C => &mut self.c,
-            Register::D => &mut self.d,
-        }
-    }
-}
+use super::{Emulator, Memory};
 
 impl Emulator {
     pub fn next_cpu_instruction(&self) -> (Instruction, u32) {
