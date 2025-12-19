@@ -23,7 +23,8 @@ fn main() {
         &Instruction::make_bytes(&[
             /* $8000 */ Ok(LoadImmediate(B, 0xC000)),
             /* $8003 */ Ok(Call(0xA000)),
-            /* $8006 */ Ok(SetFlags(1 << flag::HALT)),
+            /* $8006 */ Ok(Call(0xA100)),
+            /* $8009 */ Ok(SetFlags(1 << flag::HALT)),
         ]),
     );
 
@@ -37,6 +38,22 @@ fn main() {
             /* $A00A */ Ok(Increment(B)),
             /* $A00B */ Ok(JumpAbsolute(0xA000)),
             /* $A00E */ Ok(PopPC),
+        ]),
+    );
+
+    emu.memory.rom.load(
+        0x2100,
+        &Instruction::make_bytes(&[
+            /* $A100 */ Ok(LoadAddressAbsolute(0x7F00)),
+            /* $A103 */ Ok(CompareImmediate(A, u8::MAX.into())),
+            /* $A106 */ Ok(JumpIf(condition::ZERO, 0xA115)),
+            /* $A109 */ Ok(CompareImmediate(A, '\n' as u8 as u16)),
+            /* $A10C */ Ok(JumpIf(condition::ZERO, 0xA115)),
+            /* $A10F */ Ok(StoreAddressAbsolute(0x7F00)),
+            /* $A112 */ Ok(JumpAbsolute(0xA100)),
+            /* $A115 */ Ok(LoadImmediate(A, '\n' as u8 as u16)),
+            /* $A118 */ Ok(StoreAddressAbsolute(0x7F00)),
+            /* $A11A */ Ok(PopPC),
         ]),
     );
 

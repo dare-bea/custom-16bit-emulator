@@ -63,14 +63,27 @@ impl Emulator {
                 *self.cpu.mut_register(reg) = value;
             }
             LoadAddressAbsolute(addr) => {
-                self.cpu.a = self.memory.read_word(addr.into());
+                self.cpu.a = self.memory.read(addr.into()).into();
             }
             LoadAddressStackOffset(offset) => {
                 self.cpu.a = self
                     .memory
-                    .read_word(self.cpu.sp.wrapping_add(offset as u16).into());
+                    .read(self.cpu.sp.wrapping_add(offset as u16).into()).into();
             }
             LoadAddressIndirect(addr, reg) => {
+                self.cpu.a = self
+                    .memory
+                    .read(addr.wrapping_add(self.cpu.register(reg)).into()).into();
+            }
+            LoadWordAbsolute(addr) => {
+                self.cpu.a = self.memory.read_word(addr.into());
+            }
+            LoadWordStackOffset(offset) => {
+                self.cpu.a = self
+                    .memory
+                    .read_word(self.cpu.sp.wrapping_add(offset as u16).into());
+            }
+            LoadWordIndirect(addr, reg) => {
                 self.cpu.a = self
                     .memory
                     .read_word(addr.wrapping_add(self.cpu.register(reg)).into());

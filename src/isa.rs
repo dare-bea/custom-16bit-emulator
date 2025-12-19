@@ -6,12 +6,15 @@ pub enum Instruction {
     LoadImmediate(Register, u16),
     LoadAddressAbsolute(u16),
     LoadAddressStackOffset(i8),
+    LoadWordAbsolute(u16),
+    LoadWordStackOffset(i8),
     LoadAddressIndirect(u16, Register),
+    LoadWordIndirect(u16, Register),
     StoreAddressAbsolute(u16),
     StoreAddressStackOffset(i8),
-    StoreAddressIndirect(u16, Register),
     StoreWordAbsolute(u16),
     StoreWordStackOffset(i8),
+    StoreAddressIndirect(u16, Register),
     StoreWordIndirect(u16, Register),
     MoveRegister(Register, Register),
     MoveRegisterToSP(Register),
@@ -66,18 +69,23 @@ impl From<Instruction> for Vec<u8> {
         use Instruction::*;
         match value {
             LoadImmediate(reg, imm) => vec![(reg as u8), imm as u8, (imm >> 8) as u8],
-            LoadAddressAbsolute(addr) => vec![0x08, addr as u8, (addr >> 8) as u8],
-            LoadAddressStackOffset(offset) => vec![0x09, offset as u8],
+            LoadAddressAbsolute(addr) => vec![0x04, addr as u8, (addr >> 8) as u8],
+            LoadAddressStackOffset(offset) => vec![0x05, offset as u8],
+            LoadWordAbsolute(addr) => vec![0x06, addr as u8, (addr >> 8) as u8],
+            LoadWordStackOffset(offset) => vec![0x07, offset as u8],
             LoadAddressIndirect(addr, reg) => {
+                vec![0x08 | (reg as u8), addr as u8, (addr >> 8) as u8]
+            }
+            LoadWordIndirect(addr, reg) => {
                 vec![0x0C | (reg as u8), addr as u8, (addr >> 8) as u8]
             }
             StoreAddressAbsolute(addr) => vec![0x11, addr as u8, (addr >> 8) as u8],
             StoreAddressStackOffset(offset) => vec![0x12, offset as u8],
+            StoreWordAbsolute(addr) => vec![0x15, addr as u8, (addr >> 8) as u8],
+            StoreWordStackOffset(offset) => vec![0x16, offset as u8],
             StoreAddressIndirect(addr, reg) => {
-                vec![0x14 | (reg as u8), addr as u8, (addr >> 8) as u8]
+                vec![0x18 | (reg as u8), addr as u8, (addr >> 8) as u8]
             }
-            StoreWordAbsolute(addr) => vec![0x18, addr as u8, (addr >> 8) as u8],
-            StoreWordStackOffset(offset) => vec![0x19, offset as u8],
             StoreWordIndirect(addr, reg) => {
                 vec![0x1C | (reg as u8), addr as u8, (addr >> 8) as u8]
             }
@@ -194,14 +202,17 @@ impl Instruction {
         };
         let result = match opcode {
             0x00..=0x03 => LoadImmediate(register, Self::next_word(&mut iter, &mut count)?),
-            0x08 => LoadAddressAbsolute(Self::next_word(&mut iter, &mut count)?),
-            0x09 => LoadAddressStackOffset(Self::next_byte(&mut iter, &mut count)? as i8),
-            0x0C..=0x0F => LoadAddressIndirect(Self::next_word(&mut iter, &mut count)?, register),
+            0x04 => LoadAddressAbsolute(Self::next_word(&mut iter, &mut count)?),
+            0x05 => LoadAddressStackOffset(Self::next_byte(&mut iter, &mut count)? as i8),
+            0x06 => LoadWordAbsolute(Self::next_word(&mut iter, &mut count)?),
+            0x07 => LoadWordStackOffset(Self::next_byte(&mut iter, &mut count)? as i8),
+            0x08..=0x0B => LoadAddressIndirect(Self::next_word(&mut iter, &mut count)?, register),
+            0x0C..=0x0F => LoadWordIndirect(Self::next_word(&mut iter, &mut count)?, register),
             0x11 => StoreAddressAbsolute(Self::next_word(&mut iter, &mut count)?),
             0x12 => StoreAddressStackOffset(Self::next_byte(&mut iter, &mut count)? as i8),
-            0x14..=0x17 => StoreAddressIndirect(Self::next_word(&mut iter, &mut count)?, register),
-            0x18 => StoreWordAbsolute(Self::next_word(&mut iter, &mut count)?),
-            0x19 => StoreWordStackOffset(Self::next_byte(&mut iter, &mut count)? as i8),
+            0x15 => StoreWordAbsolute(Self::next_word(&mut iter, &mut count)?),
+            0x16 => StoreWordStackOffset(Self::next_byte(&mut iter, &mut count)? as i8),
+            0x18..=0x1B => StoreAddressIndirect(Self::next_word(&mut iter, &mut count)?, register),
             0x1C..=0x1F => StoreWordIndirect(Self::next_word(&mut iter, &mut count)?, register),
             0x20..=0x2F => {
                 let dest = match (opcode >> 2) & 3 {

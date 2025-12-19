@@ -63,13 +63,14 @@ impl Memory for MMU {
             0x7F00 => {
                 // Memory-mapped I/O for input
                 stdin()
+                    .lock()
                     .bytes()
                     .next()
                     .and_then(|result| result.ok())
                     .unwrap_or(u8::MAX)
             }
             0x8000..0x10000 => self.rom.read(address - 0x8000),
-            _ => panic!("Invalid address"),
+            _ => panic!("Invalid read address {address:#X}"),
         }
     }
 
@@ -81,7 +82,7 @@ impl Memory for MMU {
                 print!("{}", value as char);
             }
             0x8000..0x10000 => self.rom.write(address - 0x8000, value),
-            _ => panic!("Invalid address"),
+            _ => panic!("Invalid write address {address:#X}"),
         }
     }
 }
