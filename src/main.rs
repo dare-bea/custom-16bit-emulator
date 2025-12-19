@@ -4,12 +4,15 @@ use asm::flag;
 use asm::isa::Instruction;
 use asm::memory::Memory;
 use asm::register::Register;
+use std::env::var;
 
 fn main() {
     use Instruction::*;
     use Register::*;
 
-    let print_status: bool = false;
+    let print_status: bool = var("PRINT_STATUS")
+        .map(|val| val == "1" || val.to_lowercase() == "true")
+        .unwrap_or(false);
 
     let mut emu = Emulator::new();
 

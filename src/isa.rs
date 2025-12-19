@@ -215,7 +215,7 @@ impl Instruction {
             }
             0x30..=0x33 => MoveRegisterToSP(register),
             0x34..=0x37 => MoveSPToRegister(register),
-            0x40..=0x7F => match opcode & 0xFC {
+            0x40..=0x83 => match opcode & 0xFC {
                 0x40 => And(register),
                 0x44 => Or(register),
                 0x48 => Xor(register),
