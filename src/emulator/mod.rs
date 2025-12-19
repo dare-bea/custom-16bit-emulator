@@ -60,6 +60,7 @@ pub struct CPU {
     pub pc: u16,
     pub sp: u16,
     pub flags: u8,
+    pub ir_flags: u16,
 }
 
 pub struct Emulator {
