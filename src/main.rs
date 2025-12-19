@@ -8,10 +8,9 @@
 //! The GPRs may be used for any arithmetic operation.
 
 use asm::condition;
-use asm::emulator::{Emulator, MEM_SIZE};
+use asm::emulator::{Emulator};
 use asm::flag;
 use asm::isa::Instruction;
-use asm::memory::Memory;
 use asm::register::Register;
 
 fn main() {

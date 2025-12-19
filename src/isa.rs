@@ -1,8 +1,5 @@
-use crate::emulator::Emulator;
 use crate::flag;
-use crate::memory::Memory;
 use crate::register::Register;
-use std::io::{Read, stdin};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
 pub enum Instruction {
@@ -16,9 +13,9 @@ pub enum Instruction {
     StoreWordAbsolute(u16),
     StoreWordStackOffset(i8),
     StoreWordIndirect(u16, Register),
-    Move(Register, Register),
-    MoveToSP(Register),
-    MoveFromSP(Register),
+    MoveRegister(Register, Register),
+    MoveRegisterToSP(Register),
+    MoveSPToRegister(Register),
     And(Register),
     Or(Register),
     Xor(Register),
@@ -62,7 +59,7 @@ pub enum Instruction {
 }
 
 impl Instruction {
-    pub const NO_OPERATION: Self = Self::Move(Register::A, Register::A);
+    pub const NO_OPERATION: Self = Self::MoveRegister(Register::A, Register::A);
 
     pub const HALT: Self = Self::SetFlags(flag::HALT);
 }
@@ -87,9 +84,9 @@ impl From<Instruction> for Vec<u8> {
             StoreWordIndirect(addr, reg) => {
                 vec![0x1C | (reg as u8), addr as u8, (addr >> 8) as u8]
             }
-            Move(dest, src) => vec![0x20 | ((dest as u8) << 2) | (src as u8)],
-            MoveToSP(reg) => vec![0x30 | (reg as u8)],
-            MoveFromSP(reg) => vec![0x34 | (reg as u8)],
+            MoveRegister(dest, src) => vec![0x20 | ((dest as u8) << 2) | (src as u8)],
+            MoveRegisterToSP(reg) => vec![0x30 | (reg as u8)],
+            MoveSPToRegister(reg) => vec![0x34 | (reg as u8)],
             And(reg) => vec![0x40 | (reg as u8)],
             Or(reg) => vec![0x44 | (reg as u8)],
             Xor(reg) => vec![0x48 | (reg as u8)],
@@ -220,10 +217,10 @@ impl Instruction {
                     3 => Register::D,
                     _ => unreachable!(),
                 };
-                Move(dest, register)
+                MoveRegister(dest, register)
             }
-            0x30..=0x33 => MoveToSP(register),
-            0x34..=0x37 => MoveFromSP(register),
+            0x30..=0x33 => MoveRegisterToSP(register),
+            0x34..=0x37 => MoveSPToRegister(register),
             0x40..=0x7F => match opcode & 0xFC {
                 0x40 => And(register),
                 0x44 => Or(register),
@@ -250,20 +247,20 @@ impl Instruction {
             0xC1 => JumpNear(Self::next_byte(&mut iter, &mut count)? as i8),
             0xC2 => JumpStackOffset(Self::next_byte(&mut iter, &mut count)? as i8),
             0xC4..=0xC7 => JumpIndirect(Self::next_word(&mut iter, &mut count)?, register),
-            0xD0..=0xDF => {
+            0xC8..=0xCF => {
                 let cond = opcode & 0x0F;
                 JumpIf(cond, Self::next_word(&mut iter, &mut count)?)
             },
-            0xE0 => Call(Self::next_word(&mut iter, &mut count)?),
-            0xE1 => Return,
-            0xF0 => PortIn(Self::next_byte(&mut iter, &mut count)?),
-            0xF1 => PortOut(Self::next_byte(&mut iter, &mut count)?),
-            0xF2 => PushPC,
-            0xF3 => PopPC,
-            0xF4 => PushFlags,
-            0xF5 => PopFlags,
-            0xF8..=0xFB => PushRegister(register),
-            0xFC..=0xFF => PopRegister(register),
+            0xD0 => Call(Self::next_word(&mut iter, &mut count)?),
+            0xD1 => Return,
+            0xD2 => PortIn(Self::next_byte(&mut iter, &mut count)?),
+            0xD3 => PortOut(Self::next_byte(&mut iter, &mut count)?),
+            0xD4 => PushPC,
+            0xD5 => PopPC,
+            0xD6 => PushFlags,
+            0xD7 => PopFlags,
+            0xD8..=0xDB => PushRegister(register),
+            0xDC..=0xDF => PopRegister(register),
             0xF0 => ClearInterruptRequest(Self::next_byte(&mut iter, &mut count)?),
             0xF1 => SetInterruptRequest(Self::next_byte(&mut iter, &mut count)?),
             0xF2 => WaitForInterrupt,
