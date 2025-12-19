@@ -1,13 +1,13 @@
 main:
     LDI B, data
     CALL print
-    HALT
+    HLT
 
 print:
-    LDA [B]
-    AND A
+    LDA (B)
+    TEST A
     JZ end
-    OUT
+    STO A, (0x7F00)  ; Output to console port
     INC B
     JMP print
     end:

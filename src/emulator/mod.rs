@@ -1,4 +1,5 @@
 use crate::memory::Memory;
+use std::io::{stdin, Read};
 pub mod execution;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -59,6 +60,14 @@ impl Memory for MMU {
     fn read(&self, address: usize) -> u8 {
         match address {
             0x0000..0x2000 => self.ram.read(address),
+            0x7F00 => {
+                // Memory-mapped I/O for input
+                stdin()
+                    .bytes()
+                    .next()
+                    .and_then(|result| result.ok())
+                    .unwrap_or(u8::MAX)
+            }
             0x8000..0x10000 => self.rom.read(address - 0x8000),
             _ => panic!("Invalid address"),
         }
@@ -67,7 +76,7 @@ impl Memory for MMU {
     fn write(&mut self, address: usize, value: u8) {
         match address {
             0x0000..0x2000 => self.ram.write(address, value),
-            0x6000 => {
+            0x7F00 => {
                 // Memory-mapped I/O for printing characters
                 print!("{}", value as char);
             }

@@ -1,12 +1,3 @@
-//! ## Principles of Registers
-//!
-//! - Only A can read/write memory. Arithmetic operations may only mutate A.
-//! - B is used for addressing. It is not used for memory access.
-//! - C is used for loops. It is not used for memory access.
-//! - D is used for port indexing. It is not used for memory access.
-//!
-//! The GPRs may be used for any arithmetic operation.
-
 use asm::condition;
 use asm::emulator::Emulator;
 use asm::flag;
@@ -37,9 +28,9 @@ fn main() {
         0x2000,
         &Instruction::make_bytes(&[
             /* $A000 */ Ok(LoadAddressIndirect(0, B)),
-            /* $A003 */ Ok(And(A)),
+            /* $A003 */ Ok(Test(A)),
             /* $A004 */ Ok(JumpIf(condition::ZERO, 0xA00E)),
-            /* $A007 */ Ok(StoreAddressAbsolute(0x6000)),
+            /* $A007 */ Ok(StoreAddressAbsolute(0x7F00)),
             /* $A00A */ Ok(Increment(B)),
             /* $A00B */ Ok(JumpAbsolute(0xA000)),
             /* $A00E */ Ok(PopPC),
