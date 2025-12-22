@@ -5,7 +5,7 @@ pub mod memory;
 pub mod execution;
 
 use cpu::CPU;
-use memory::{Cartridge, MMU, RAM};
+use memory::{Cartridge, MMU, RAM, RAM_SIZE};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Emulator {
@@ -24,7 +24,7 @@ impl Emulator {
         let mut emu = Emulator {
             memory: MMU {
                 rom,
-                ram: RAM { data: [0; 0x2000] },
+                ram: RAM { data: [0; RAM_SIZE] },
             },
             cpu: CPU {
                 a: 0,

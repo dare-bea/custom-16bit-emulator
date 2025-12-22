@@ -58,9 +58,11 @@ impl<const N: usize> Memory for RAM<N> {
     }
 }
 
+pub const RAM_SIZE: usize = 0x3000; // 12KB RAM
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct MMU {
-    pub ram: RAM<0x3000>,
+    pub ram: RAM<RAM_SIZE>,
     pub rom: Cartridge,
 }
 
@@ -84,7 +86,7 @@ impl Memory for MMU {
 
     fn write(&mut self, address: usize, value: u8) {
         match address {
-            0x0000..0x2000 => self.ram.write(address, value),
+            0x0000..RAM_SIZE => self.ram.write(address, value),
             0x7F00 => {
                 // Memory-mapped I/O for printing characters
                 print!("{}", value as char);
