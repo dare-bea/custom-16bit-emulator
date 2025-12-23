@@ -1,0 +1,257 @@
+Op	 Memonic	 Operand 1	 Operand 2	 Bytes	 Description
+00	 LD     	 addr     	          	     3	 Load byte from memory at addr into default register
+01	 LD     	 addr     	 SP       	     3	 Load byte from memory at addr into SP
+02	        	          	          	      	 
+03	 LDS    	 dst      	 src      	     2	 Load byte from memory addressed by src register into dst register
+04	 LDW    	 addr     	          	     3	 Load word from memory at addr into default register
+05	 LDW    	 addr     	 SP       	     3	 Load word from memory at addr into SP
+06	        	          	          	      	 
+07	 LDSW   	 dst      	 src      	     2	 Load word from memory addressed by src register into dst register
+08	 LD     	 addr     	 A        	     3	 Load byte from memory at addr into A
+09	 LD     	 addr     	 B        	     3	 Load byte from memory at addr into B
+0A	 LD     	 addr     	 C        	     3	 Load byte from memory at addr into C
+0B	 LD     	 addr     	 D        	     3	 Load byte from memory at addr into D
+0C	 LDW    	 addr     	 A        	     3	 Load word from memory at addr into A
+0D	 LDW    	 addr     	 B        	     3	 Load word from memory at addr into B
+0E	 LDW    	 addr     	 C        	     3	 Load word from memory at addr into C
+0F	 LDW    	 addr     	 D        	     3	 Load word from memory at addr into D
+10	 ST     	 addr     	          	     3	 Store byte from default register into memory at addr
+11	 ST     	 addr     	 SP       	     3	 Store byte from SP into memory at addr
+12	        	          	          	      	 
+13	 STS    	 dst      	 src      	     2	 Store byte from src register into memory addressed by dst register
+14	 STW    	 addr     	          	     3	 Store word from default register into memory at addr
+15	 STW    	 addr     	 SP       	     3	 Store word from SP into memory at addr
+16	        	          	          	      	 
+17	 STSW   	 dst      	 src      	     2	 Store word from src register into memory addressed by dst register
+18	 ST     	 addr     	 A        	     3	 Store byte from A into memory at addr
+19	 ST     	 addr     	 B        	     3	 Store byte from B into memory at addr
+1A	 ST     	 addr     	 C        	     3	 Store byte from C into memory at addr
+1B	 ST     	 addr     	 D        	     3	 Store byte from D into memory at addr
+1C	 STW    	 addr     	 A        	     3	 Store word from A into memory at addr
+1D	 STW    	 addr     	 B        	     3	 Store word from B into memory at addr
+1E	 STW    	 addr     	 C        	     3	 Store word from C into memory at addr
+1F	 STW    	 addr     	 D        	     3	 Store word from D into memory at addr
+20	 LDI    	 A        	 #imm8    	     2	 Load 8-bit immediate into A
+21	 LDI    	 B        	 #imm8    	     2	 Load 8-bit immediate into B
+22	 LDI    	 C        	 #imm8    	     2	 Load 8-bit immediate into C
+23	 LDI    	 D        	 #imm8    	     2	 Load 8-bit immediate into D
+24	 LDI    	 A        	 #imm16   	     3	 Load 16-bit immediate into A
+25	 LDI    	 B        	 #imm16   	     3	 Load 16-bit immediate into B
+26	 LDI    	 C        	 #imm16   	     3	 Load 16-bit immediate into C
+27	 LDI    	 D        	 #imm16   	     3	 Load 16-bit immediate into D
+28	 JMP    	 rel      	 PC       	     2	 Relative jump from PC
+29	 JMP    	 addr     	          	     3	 Absolute jump to addr
+2A	 JMPI   	 addr     	 SP       	     3	 Indirect jump to addr plus SP
+2B	 MOV    	 dst      	 src      	     2	 Copy value from src register to dst register
+2C	 JMPI   	 addr     	 A        	     3	 Indirect jump to addr plus A
+2D	 JMPI   	 addr     	 B        	     3	 Indirect jump to addr plus B
+2E	 JMPI   	 addr     	 C        	     3	 Indirect jump to addr plus C
+2F	 JMPI   	 addr     	 D        	     3	 Indirect jump to addr plus D
+30	 Jcc    	 rel      	 PC       	     2	 Conditional relative jump from PC
+31	 Jcc    	 addr     	          	     3	 Conditional absolute jump to addr
+32	 JccI   	 addr     	 SP       	     3	 Conditional indirect jump via SP
+33	 MOVcc  	 dst      	 src      	     2	 Conditional register move
+34	 JccI   	 addr     	 A        	     3	 Conditional indirect jump via A
+35	 JccI   	 addr     	 B        	     3	 Conditional indirect jump via B
+36	 JccI   	 addr     	 C        	     3	 Conditional indirect jump via C
+37	 JccI   	 addr     	 D        	     3	 Conditional indirect jump via D
+38	 CALL   	 rel      	 PC       	     2	 Relative subroutine call
+39	 CALL   	 addr     	          	     3	 Absolute subroutine call
+3A	 CALLI  	 addr     	 SP       	     3	 Indirect subroutine call via SP
+3B	 PUSHMOV	 dst      	 src      	     2	 Push src register then move to dst register
+3C	 CALLI  	 addr     	 A        	     3	 Indirect subroutine call via A
+3D	 CALLI  	 addr     	 B        	     3	 Indirect subroutine call via B
+3E	 CALLI  	 addr     	 C        	     3	 Indirect subroutine call via C
+3F	 CALLI  	 addr     	 D        	     3	 Indirect subroutine call via D
+40	 PUSH   	 A        	          	     1	 Push A onto stack
+41	 PUSH   	 B        	          	     1	 Push B onto stack
+42	 PUSH   	 C        	          	     1	 Push C onto stack
+43	 PUSH   	 D        	          	     1	 Push D onto stack
+44	        	          	          	      	 
+45	 PUSH   	 SP       	          	     1	 Push SP onto stack
+46	 PUSH   	 PC       	          	     1	 Push PC onto stack
+47	 PUSH   	 FLAGS    	          	     1	 Push FLAGS onto stack
+48	 POP    	 A        	          	     1	 Pop stack into A
+49	 POP    	 B        	          	     1	 Pop stack into B
+4A	 POP    	 C        	          	     1	 Pop stack into C
+4B	 POP    	 D        	          	     1	 Pop stack into D
+4C	        	          	          	      	 
+4D	 POP    	 SP       	          	     1	 Pop stack into SP
+4E	 RET    	          	          	     1	 Return from subroutine (Pop stack into PC)
+4F	 POP    	 FLAGS    	          	     1	 Pop stack into FLAGS
+50	 MOVS   	 dst      	 src      	     2	 Move byte between memory locations addressed by registers
+51	        	          	          	      	 
+52	        	          	          	      	 
+53	        	          	          	      	 
+54	        	          	          	      	 
+55	        	          	          	      	 
+56	        	          	          	      	 
+57	        	          	          	      	 
+58	        	          	          	      	 
+59	        	          	          	      	 
+5A	        	          	          	      	 
+5B	        	          	          	      	 
+5C	        	          	          	      	 
+5D	        	          	          	      	 
+5E	        	          	          	      	 
+5F	        	          	          	      	 
+60	 CIRQ   	 addr     	          	     3	 Clear interrupt request at addr
+61	 SIRQ   	 addr     	          	     3	 Set interrupt request at addr
+62	 WAIT   	          	          	     1	 Halt until interrupt
+63	 RETI   	          	          	     1	 Return from interrupt
+64	 STF    	 #imm16   	          	     3	 Set flags specified by immediate mask
+65	 CLF    	 #imm16   	          	     3	 Clear flags specified by immediate mask
+66	        	          	          	      	 
+67	        	          	          	      	 
+68	 NOT    	 dst      	          	     2	 Bitwise NOT on dst register
+69	 NEG    	 dst      	          	     2	 Two's complement negate dst register
+6A	 INC    	 dst      	          	     2	 Increment dst register
+6B	 DEC    	 dst      	          	     2	 Decrement dst register
+6C	 SXT    	 dst      	          	     2	 Sign-extend dst register
+6D	 SWAP   	 dst      	          	     2	 Swap high and low bytes of dst register
+6E	        	          	          	      	 
+6F	        	          	          	      	 
+70	 TST    	 A        	          	     1	 Test A and update flags
+71	 TST    	 B        	          	     1	 Test B and update flags
+72	 TST    	 C        	          	     1	 Test C and update flags
+73	 TST    	 D        	          	     1	 Test D and update flags
+74	 TST    	 A        	 #imm16   	     3	 Test A against immediate
+75	 TST    	 B        	 #imm16   	     3	 Test B against immediate
+76	 TST    	 C        	 #imm16   	     3	 Test C against immediate
+77	 TST    	 D        	 #imm16   	     3	 Test D against immediate
+78	 CMP    	 A        	          	     1	 Compare A with accumulator
+79	 CMP    	 B        	          	     1	 Compare B with accumulator
+7A	 CMP    	 C        	          	     1	 Compare C with accumulator
+7B	 CMP    	 D        	          	     1	 Compare D with accumulator
+7C	 CMP    	 A        	 #imm16   	     3	 Compare A with immediate
+7D	 CMP    	 B        	 #imm16   	     3	 Compare B with immediate
+7E	 CMP    	 C        	 #imm16   	     3	 Compare C with immediate
+7F	 CMP    	 D        	 #imm16   	     3	 Compare D with immediate
+80	 AND    	 A        	          	     1	 Logical AND accumulator with A
+81	 AND    	 B        	          	     1	 Logical AND accumulator with B
+82	 AND    	 C        	          	     1	 Logical AND accumulator with C
+83	 AND    	 D        	          	     1	 Logical AND accumulator with D
+84	 AND    	 #imm8    	          	     2	 Logical AND accumulator with immediate
+85	 AND    	 #imm16   	          	     3	 Logical AND accumulator with immediate
+86	 AND    	 dst      	 src      	     2	 Logical AND dst register with src register
+87	        	          	          	      	 
+88	 OR     	 A        	          	     1	 Logical OR accumulator with A
+89	 OR     	 B        	          	     1	 Logical OR accumulator with B
+8A	 OR     	 C        	          	     1	 Logical OR accumulator with C
+8B	 OR     	 D        	          	     1	 Logical OR accumulator with D
+8C	 OR     	 #imm8    	          	     2	 Logical OR accumulator with immediate
+8D	 OR     	 #imm16   	          	     3	 Logical OR accumulator with immediate
+8E	 OR     	 dst      	 src      	     2	 Logical OR dst register with src register
+8F	        	          	          	      	 
+90	 XOR    	 A        	          	     1	 Logical XOR accumulator with A
+91	 XOR    	 B        	          	     1	 Logical XOR accumulator with B
+92	 XOR    	 C        	          	     1	 Logical XOR accumulator with C
+93	 XOR    	 D        	          	     1	 Logical XOR accumulator with D
+94	 XOR    	 #imm8    	          	     2	 Logical XOR accumulator with immediate
+95	 XOR    	 #imm16   	          	     3	 Logical XOR accumulator with immediate
+96	 XOR    	 dst      	 src      	     2	 Logical XOR dst register with src register
+97	        	          	          	      	 
+98	 SHL    	 A        	          	     1	 Shift A left
+99	 SHL    	 B        	          	     1	 Shift B left
+9A	 SHL    	 C        	          	     1	 Shift C left
+9B	 SHL    	 D        	          	     1	 Shift D left
+9C	 SHL    	 #imm8    	          	     2	 Shift accumulator left by immediate
+9D	 SHL    	 #imm16   	          	     3	 Shift accumulator left by immediate
+9E	 SHL    	 dst      	 src      	     2	 Shift dst register left by src register
+9F	        	          	          	      	 
+A0	 SHR    	 A        	          	     1	 Logical shift A right
+A1	 SHR    	 B        	          	     1	 Logical shift B right
+A2	 SHR    	 C        	          	     1	 Logical shift C right
+A3	 SHR    	 D        	          	     1	 Logical shift D right
+A4	 SHR    	 #imm8    	          	     2	 Logical shift accumulator right by immediate
+A5	 SHR    	 #imm16   	          	     3	 Logical shift accumulator right by immediate
+A6	 SHR    	 dst      	 src      	     2	 Logical shift dst register right by src register
+A7	        	          	          	      	 
+A8	 SAR    	 A        	          	     1	 Arithmetic shift A right
+A9	 SAR    	 B        	          	     1	 Arithmetic shift B right
+AA	 SAR    	 C        	          	     1	 Arithmetic shift C right
+AB	 SAR    	 D        	          	     1	 Arithmetic shift D right
+AC	 SAR    	 #imm8    	          	     2	 Arithmetic shift accumulator right by immediate
+AD	 SAR    	 #imm16   	          	     3	 Arithmetic shift accumulator right by immediate
+AE	 SAR    	 dst      	 src      	     2	 Arithmetic shift dst register right by src register
+AF	        	          	          	      	 
+B0	 ROL    	 A        	          	     1	 Rotate A left
+B1	 ROL    	 B        	          	     1	 Rotate B left
+B2	 ROL    	 C        	          	     1	 Rotate C left
+B3	 ROL    	 D        	          	     1	 Rotate D left
+B4	 ROL    	 #imm8    	          	     2	 Rotate accumulator left by immediate
+B5	 ROL    	 #imm16   	          	     3	 Rotate accumulator left by immediate
+B6	 ROL    	 dst      	 src      	     2	 Rotate dst register left by src register
+B7	        	          	          	      	 
+B8	 ROR    	 A        	          	     1	 Rotate A right
+B9	 ROR    	 B        	          	     1	 Rotate B right
+BA	 ROR    	 C        	          	     1	 Rotate C right
+BB	 ROR    	 D        	          	     1	 Rotate D right
+BC	 ROR    	 #imm8    	          	     2	 Rotate accumulator right by immediate
+BD	 ROR    	 #imm16   	          	     3	 Rotate accumulator right by immediate
+BE	 ROR    	 dst      	 src      	     2	 Rotate dst register right by src register
+BF	        	          	          	      	 
+C0	 ADD    	 A        	          	     1	 Add A to accumulator
+C1	 ADD    	 B        	          	     1	 Add B to accumulator
+C2	 ADD    	 C        	          	     1	 Add C to accumulator
+C3	 ADD    	 D        	          	     1	 Add D to accumulator
+C4	 ADD    	 #imm8    	          	     2	 Add immediate to accumulator
+C5	 ADD    	 #imm16   	          	     3	 Add immediate to accumulator
+C6	 ADD    	 dst      	 src      	     2	 Add src register to dst register
+C7	        	          	          	      	 
+C8	 SUB    	 A        	          	     1	 Subtract A from accumulator
+C9	 SUB    	 B        	          	     1	 Subtract B from accumulator
+CA	 SUB    	 C        	          	     1	 Subtract C from accumulator
+CB	 SUB    	 D        	          	     1	 Subtract D from accumulator
+CC	 SUB    	 #imm8    	          	     2	 Subtract immediate from accumulator
+CD	 SUB    	 #imm16   	          	     3	 Subtract immediate from accumulator
+CE	 SUB    	 dst      	 src      	     2	 Subtract src register from dst register
+CF	        	          	          	      	 
+D0	 ADC    	 A        	          	     1	 Add A plus carry to accumulator
+D1	 ADC    	 B        	          	     1	 Add B plus carry to accumulator
+D2	 ADC    	 C        	          	     1	 Add C plus carry to accumulator
+D3	 ADC    	 D        	          	     1	 Add D plus carry to accumulator
+D4	 ADC    	 #imm8    	          	     2	 Add immediate plus carry to accumulator
+D5	 ADC    	 #imm16   	          	     3	 Add immediate plus carry to accumulator
+D6	 ADC    	 dst      	 src      	     2	 Add src register plus carry to dst register
+D7	        	          	          	      	 
+D8	 SBB    	 A        	          	     1	 Subtract A plus borrow from accumulator
+D9	 SBB    	 B        	          	     1	 Subtract B plus borrow from accumulator
+DA	 SBB    	 C        	          	     1	 Subtract C plus borrow from accumulator
+DB	 SBB    	 D        	          	     1	 Subtract D plus borrow from accumulator
+DC	 SBB    	 #imm8    	          	     2	 Subtract immediate plus borrow from accumulator
+DD	 SBB    	 #imm16   	          	     3	 Subtract immediate plus borrow from accumulator
+DE	 SBB    	 dst      	 src      	     2	 Subtract src register plus borrow from dst register
+DF	        	          	          	      	 
+E0	 MUL    	 A        	          	     1	 Multiply accumulator by A
+E1	 MUL    	 B        	          	     1	 Multiply accumulator by B
+E2	 MUL    	 C        	          	     1	 Multiply accumulator by C
+E3	 MUL    	 D        	          	     1	 Multiply accumulator by D
+E4	 MUL    	 #imm8    	          	     2	 Multiply accumulator by immediate
+E5	 MUL    	 #imm16   	          	     3	 Multiply accumulator by immediate
+E6	 MUL    	 dst      	 src      	     2	 Multiply dst register by src register
+E7	        	          	          	      	 
+E8	 MULH   	 A        	          	     1	 High-word multiply accumulator by A
+E9	 MULH   	 B        	          	     1	 High-word multiply accumulator by B
+EA	 MULH   	 C        	          	     1	 High-word multiply accumulator by C
+EB	 MULH   	 D        	          	     1	 High-word multiply accumulator by D
+EC	 MULH   	 #imm8    	          	     2	 High-word multiply accumulator by immediate
+ED	 MULH   	 #imm16   	          	     3	 High-word multiply accumulator by immediate
+EE	 MULH   	 dst      	 src      	     2	 High-word multiply dst register by src register
+EF	        	          	          	      	 
+F0	 DIV    	 A        	          	     1	 Divide accumulator by A
+F1	 DIV    	 B        	          	     1	 Divide accumulator by B
+F2	 DIV    	 C        	          	     1	 Divide accumulator by C
+F3	 DIV    	 D        	          	     1	 Divide accumulator by D
+F4	 DIV    	 #imm8    	          	     2	 Divide accumulator by immediate
+F5	 DIV    	 #imm16   	          	     3	 Divide accumulator by immediate
+F6	 DIV    	 dst      	 src      	     2	 Divide dst register by src register
+F7	        	          	          	      	 
+F8	 MOD    	 A        	          	     1	 Modulo accumulator by A
+F9	 MOD    	 B        	          	     1	 Modulo accumulator by B
+FA	 MOD    	 C        	          	     1	 Modulo accumulator by C
+FB	 MOD    	 D        	          	     1	 Modulo accumulator by D
+FC	 MOD    	 #imm8    	          	     2	 Modulo accumulator by immediate
+FD	 MOD    	 #imm16   	          	     3	 Modulo accumulator by immediate
+FE	 MOD    	 dst      	 src      	     2	 Modulo dst register by src register
+FF	        	          	          	      	 

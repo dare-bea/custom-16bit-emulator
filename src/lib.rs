@@ -6,3 +6,4 @@ pub mod flag;
 pub mod isa;
 pub mod memory;
 pub mod register;
+pub mod compile;
