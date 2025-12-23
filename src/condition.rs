@@ -1,75 +1,93 @@
-/// Zero flag is set. Equivalent to `[condition::EQUAL]`.
-pub const ZERO: u8 = 0;
-/// Zero flag is set. Equivalent to `[condition::ZERO]`.
-pub const EQUAL: u8 = 0;
+use std::str::FromStr;
 
-/// Sign flag is set.
-pub const SIGN: u8 = 1;
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
+pub enum ConditionCode {
+    B, BE, AE, A, L, LE, GE, G, Z, S, C, O, NZ, NS, NC, NO
+}
 
-/// Carry flag is set. Equivalent to `[condition::BELOW]`, `[condition::NOT_ABOVE_EQUAL]`.
-pub const CARRY: u8 = 2;
-/// Carry flag is set. Equivalent to `[condition::CARRY]`, `[condition::NOT_ABOVE_EQUAL]`.
-pub const BELOW: u8 = 2;
-/// Carry flag is set. Equivalent to `[condition::CARRY]`, `[condition::BELOW]`.
-pub const NOT_ABOVE_EQUAL: u8 = 2;
+impl FromStr for ConditionCode {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "B" => ConditionCode::B,
+            "BE" => ConditionCode::BE,
+            "AE" => ConditionCode::AE,
+            "A" => ConditionCode::A,
+            "L" => ConditionCode::L,
+            "LE" => ConditionCode::LE,
+            "GE" => ConditionCode::GE,
+            "G" => ConditionCode::G,
+            "Z" => ConditionCode::Z,
+            "S" => ConditionCode::S,
+            "C" => ConditionCode::C,
+            "O" => ConditionCode::O,
+            "NB" => ConditionCode::AE,
+            "NBE" => ConditionCode::A,
+            "NAE" => ConditionCode::B,
+            "NA" => ConditionCode::BE,
+            "NL" => ConditionCode::GE,
+            "NLE" => ConditionCode::G,
+            "NGE" => ConditionCode::L,
+            "NG" => ConditionCode::LE,
+            "LT" => ConditionCode::L,
+            "NLT" => ConditionCode::GE,
+            "GT" => ConditionCode::G,
+            "NGT" => ConditionCode::LE,
+            "E" => ConditionCode::Z,
+            "NE" => ConditionCode::NZ,
+            "EQ" => ConditionCode::Z,
+            "NEQ" => ConditionCode::NZ,
+            "NZ" => ConditionCode::NZ,
+            "NS" => ConditionCode::NS,
+            "NC" => ConditionCode::NC,
+            "NO" => ConditionCode::NO,
+            _ => return Err(()),
+        })
+    }
+}
 
-/// Overflow flag is set.
-pub const OVERFLOW: u8 = 3;
+impl ToString for ConditionCode {
+    fn to_string(&self) -> String {
+        String::from(match self {
+            ConditionCode::B => "B",
+            ConditionCode::BE => "BE",
+            ConditionCode::AE => "AE",
+            ConditionCode::A => "A",
+            ConditionCode::L => "L",
+            ConditionCode::LE => "LE",
+            ConditionCode::GE => "GE",
+            ConditionCode::G => "G",
+            ConditionCode::Z => "Z",
+            ConditionCode::S => "S",
+            ConditionCode::C => "C",
+            ConditionCode::O => "O",
+            ConditionCode::NZ => "NZ",
+            ConditionCode::NS => "NS",
+            ConditionCode::NC => "NC",
+            ConditionCode::NO => "NO",
+        })
+    }
+}
 
-/// Reserved for future use. Equivalent to `[condition::RESERVED_NOT_12]`.
-pub const RESERVED_4: u8 = 4;
-/// Reserved for future use. Equivalent to `[condition::RESERVED_4]`.
-pub const RESERVED_NOT_12: u8 = 4;
-
-/// Carry or zero flag is set. Equivalent to `[condition::NOT_ABOVE]`.
-pub const BELOW_EQUAL: u8 = 5;
-/// Carry or zero flag is set. Equivalent to `[condition::BELOW_EQUAL]`.
-pub const NOT_ABOVE: u8 = 5;
-
-/// Sign flag is not equal to overflow flag. Equivalent to `[condition::NOT_GREATER_EQUAL]`.
-pub const LESS: u8 = 6;
-/// Sign flag is not equal to overflow flag. Equivalent to `[condition::LESS]`.
-pub const NOT_GREATER_EQUAL: u8 = 6;
-
-/// Zero flag is set or sign flag is not equal to overflow flag. Equivalent to `[condition::NOT_GREATER]`.
-pub const LESS_EQUAL: u8 = 7;
-/// Zero flag is set or sign flag is not equal to overflow flag. Equivalent to `[condition::LESS_EQUAL]`.
-pub const NOT_GREATER: u8 = 7;
-
-/// Zero flag is clear. Equivalent to `[condition::NOT_EQUAL]`.
-pub const NOT_ZERO: u8 = 8;
-/// Zero flag is clear. Equivalent to `[condition::NOT_ZERO]`.
-pub const NOT_EQUAL: u8 = 8;
-
-/// Sign flag is clear.
-pub const NOT_SIGN: u8 = 9;
-
-/// Carry flag is clear. Equivalent to `[condition::ABOVE_EQUAL]`, `[condition::NOT_BELOW]`.
-pub const NOT_CARRY: u8 = 10;
-/// Carry flag is clear. Equivalent to `[condition::NOT_CARRY]`, `[condition::NOT_BELOW]`.
-pub const ABOVE_EQUAL: u8 = 10;
-/// Carry flag is clear. Equivalent to `[condition::NOT_CARRY]`, `[condition::ABOVE_EQUAL]`.
-pub const NOT_BELOW: u8 = 10;
-
-/// Overflow flag is clear.
-pub const NOT_OVERFLOW: u8 = 11;
-
-/// Reserved for future use. Equivalent to `[condition::RESERVED_NOT_4]`.
-pub const RESERVED_12: u8 = 12;
-/// Reserved for future use. Equivalent to `[condition::RESERVED_12]`.
-pub const RESERVED_NOT_4: u8 = 12;
-
-/// Carry and zero flags are clear. Equivalent to `[condition::ABOVE]`.
-pub const NOT_BELOW_EQUAL: u8 = 13;
-/// Carry and zero flags are clear. Equivalent to `[condition::NOT_BELOW_EQUAL]`.
-pub const ABOVE: u8 = 13;
-
-/// Sign flag is equal to overflow flag. Equivalent to `[condition::GREATER_EQUAL]`.
-pub const NOT_LESS: u8 = 14;
-/// Sign flag is equal to overflow flag. Equivalent to `[condition::NOT_LESS]`.
-pub const GREATER_EQUAL: u8 = 14;
-
-/// Zero flag is clear and sign flag is equal to overflow flag. Equivalent to `[condition::GREATER]`.
-pub const NOT_LESS_EQUAL: u8 = 15;
-/// Zero flag is clear and sign flag is equal to overflow flag. Equivalent to `[condition::NOT_LESS_EQUAL]`.
-pub const GREATER: u8 = 15;
+impl From<ConditionCode> for u8 {
+    fn from(value: ConditionCode) -> Self {
+        match value {
+            ConditionCode::B =>  0x4,
+            ConditionCode::BE => 0x5,
+            ConditionCode::AE => 0xC,
+            ConditionCode::A =>  0xD,
+            ConditionCode::L =>  0x6,
+            ConditionCode::LE => 0x7,
+            ConditionCode::GE => 0xE,
+            ConditionCode::G =>  0xF,
+            ConditionCode::Z =>  0x0,
+            ConditionCode::S =>  0x1,
+            ConditionCode::C =>  0x2,
+            ConditionCode::O =>  0x3,
+            ConditionCode::NZ => 0x8,
+            ConditionCode::NS => 0x9,
+            ConditionCode::NC => 0xA,
+            ConditionCode::NO => 0xB,
+        }
+    }
+}
