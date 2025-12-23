@@ -48,8 +48,8 @@ enum ParseError {
     IOError(line_no, std::io::Error),
     InvalidSyntax(line_no, String),
     UnknownInstruction(line_no, String),
-    UnknownRegister(String),
-    InvalidOperand(String),
+    UnknownRegister(line_no, String),
+    InvalidOperand(line_no, String),
 }
 
 pub fn compile(source: impl BufRead) -> Result<Vec<u8>, ParseError> {
