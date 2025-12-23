@@ -14,7 +14,7 @@ fn main() {
         .map(|val| val == "1" || val.to_lowercase() == "true")
         .unwrap_or(false);
 
-    let mut emu = Emulator::new();
+    let mut emu = Emulator::default();
 
     emu.memory.rom.unlock();
 

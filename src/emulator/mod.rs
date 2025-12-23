@@ -24,7 +24,7 @@ impl Emulator {
         let mut emu = Emulator {
             memory: MMU {
                 rom,
-                ram: RAM { data: [0; 0x2000] },
+                ram: RAM { data: [0; 0x3000] },
             },
             cpu: CPU {
                 a: 0,
