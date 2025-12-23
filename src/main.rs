@@ -1,5 +1,6 @@
 use asm::condition;
 use asm::emulator::Emulator;
+use asm::emulator::memory::Cartridge;
 use asm::flag;
 use asm::isa::Instruction;
 use asm::memory::Memory;
@@ -14,11 +15,8 @@ fn main() {
         .map(|val| val == "1" || val.to_lowercase() == "true")
         .unwrap_or(false);
 
-    let mut emu = Emulator::new();
-
-    emu.memory.rom.unlock();
-
-    emu.memory.rom.load(
+    let mut cart = Cartridge::default();
+    cart.load(
         0x0000,
         &Instruction::make_bytes(&[
             /* $8000 */ Ok(LoadImmediate(B, 0xC000)),
@@ -27,8 +25,7 @@ fn main() {
             /* $8009 */ Ok(SetFlags(1 << flag::HALT)),
         ]),
     );
-
-    emu.memory.rom.load(
+    cart.load(
         0x2000,
         &Instruction::make_bytes(&[
             /* $A000 */ Ok(LoadAddressIndirect(0, B)),
@@ -40,8 +37,7 @@ fn main() {
             /* $A00E */ Ok(PopPC),
         ]),
     );
-
-    emu.memory.rom.load(
+    cart.load(
         0x2100,
         &Instruction::make_bytes(&[
             /* $A100 */ Ok(LoadAddressAbsolute(0x7F00)),
@@ -56,19 +52,17 @@ fn main() {
             /* $A11A */ Ok(PopPC),
         ]),
     );
-
-    emu.memory.rom.load(
+    cart.load(
         0x4000,
         &Instruction::make_bytes(&[/* $C000 */ Err("Hello, World!\n\0".as_bytes())]),
     );
-
-    emu.memory.rom.load(
+    cart.load(
         0x7FFE,
         &Instruction::make_bytes(&[Err(0x8000u16.to_le_bytes().as_ref())]),
     );
+    cart.lock();
 
-    emu.memory.rom.lock();
-    emu.reset();
+    let mut emu = Emulator::new(cart);
     if print_status {
         eprintln!("Initial CPU State: {:?}", emu.cpu);
     }

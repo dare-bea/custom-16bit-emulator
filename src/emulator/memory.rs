@@ -69,7 +69,7 @@ pub struct MMU {
 impl Memory for MMU {
     fn read(&self, address: usize) -> u8 {
         match address {
-            0x4000..=0x6FFF => self.ram.read(address),
+            0x0000..RAM_SIZE => self.ram.read(address),
             0x7F00 => {
                 // Memory-mapped I/O for input
                 stdin()
