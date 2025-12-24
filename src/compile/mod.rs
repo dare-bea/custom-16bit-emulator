@@ -5,7 +5,7 @@ use num::cast::AsPrimitive;
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum InstructionError {
     ExpectedMemonic,
-    InvalidNumber(std::num::ParseIntError),
+    InvalidNumber(String),
     InvalidImmediate(String),
     InvalidRegister(String),
     InvalidOffset(String),
@@ -41,59 +41,74 @@ impl std::fmt::Display for Register {
     }
 }
 
-fn parse_number(string: &str) -> Result<Result<u16, String>, InstructionError> {
-    // Try conversion to u16, then try i16 (converted to u16 afterwards).
-    let result = if let Some(string) = string.strip_prefix('$') {
-        u16::from_str_radix(string, 16)
-            .or_else(|_| i16::from_str_radix(string, 16).map(|x| x as u16))
+fn parse_integer<U: num::PrimInt + FromStr + 'static, I: num::PrimInt + FromStr + 'static + AsPrimitive<U>>(string: &str) -> Result<U, <I as num::Num>::FromStrRadixErr> {
+    if let Some(string) = string.strip_prefix('$') {
+        U::from_str_radix(string, 16)
+            .or_else(|_| I::from_str_radix(string, 16).map(|x| x.as_()))
     } else if let Some(string) = string.strip_prefix('%') {
-        u16::from_str_radix(string, 2).or_else(|_| i16::from_str_radix(string, 2).map(|x| x as u16))
+        U::from_str_radix(string, 2).or_else(|_| I::from_str_radix(string, 2).map(|x| x.as_()))
     } else {
-        string
-            .parse::<u16>()
-            .or_else(|_| string.parse::<i16>().map(|x| x as u16))
-    };
-    match result {
-        Ok(addr) => Ok(Ok(addr)),
-        Err(_) if string.chars().all(|c|
-            c.is_alphanumeric() || matches!(c, '_' | '-' | '.' | '+')
-        ) => Ok(Err(string.to_string())),
-        Err(err) => Err(InstructionError::InvalidNumber(err)),
+        U::from_str_radix(string, 10).or_else(|_| I::from_str_radix(string, 10).map(|x| x.as_()))
     }
 }
 
-fn parse_immediate(string: &str) -> Result<Result<u16, String>, InstructionError> {
-    if let Some(string) = string.strip_prefix('#') {
-        parse_number(string)
+fn parse_symbol(string: &str) -> Result<String, ()> {
+    if string.chars().all(|c|
+        c.is_alphanumeric() || matches!(c, '_' | '-' | '.' | '+')
+    ) && parse_register(string).is_err() {
+        Ok(string.to_string())
+    } else {
+        Err(())
+    }
+}
+
+enum Value<T> {
+    Literal(T),
+    Symbol(String)
+}
+
+fn parse_or_symbol<U: num::PrimInt + std::str::FromStr + 'static, I: num::PrimInt + num::traits::AsPrimitive<U> + std::str::FromStr>(string: &str) -> Result<Value<U>, InstructionError> {
+    // Try conversion to u16, then try i16 (converted to u16 afterwards).
+    match parse_integer::<U, I>(string) {
+        Ok(value) => Ok(Value::Literal(value)),
+        Err(_) => parse_symbol(string).map(Value::Symbol).map_err(|_| InstructionError::InvalidNumber(string.to_string()))
+    }
+}
+
+fn parse_immediate(string: &str) -> Result<Value<u16>, InstructionError> {
+    if let Some(string) = string.strip_prefix('#').or(string.strip_prefix("W#")) {
+        parse_or_symbol::<u16, i16>(string)
     } else {
         Err(InstructionError::InvalidImmediate(string.to_string()))
     }
 }
 
-fn parse_immediate8(string: &str) -> Result<Result<u8, String>, InstructionError> {
-    match parse_immediate(string).map(|x|
-        x.map(|x| u8::try_from(x)))
-    {
-        Ok(Ok(Ok(value))) => Ok(Ok(value)),
-        Ok(Ok(Err(_))) => Err(InstructionError::InvalidImmediate(string.to_string())),
-        Ok(Err(s)) => Ok(Err(s)),
-        Err(err) => Err(err),
+fn parse_immediate8(string: &str) -> Result<Value<u8>, InstructionError> {
+    if let Some(string) = string.strip_prefix('#').or(string.strip_prefix("B#")) {
+        match parse_integer::<u8, i8>(string) {
+            Ok(value) => Ok(Value::Literal(value)),
+            Err(_) => Err(InstructionError::InvalidNumber(string.to_string())), // does not accept symbols
+        }
+    } else {
+        Err(InstructionError::InvalidImmediate(string.to_string()))
     }
 }
 
-fn parse_address(string: &str) -> Result<Result<u16, String>, InstructionError> {
-    parse_number(string)
+#[allow(dead_code)]
+fn parse_immediate8_symbol(string: &str) -> Result<Value<u8>, InstructionError> {
+    if let Some(string) = string.strip_prefix('#').or(string.strip_prefix("B#")) {
+        parse_or_symbol::<u8, i8>(string)
+    } else {
+        Err(InstructionError::InvalidImmediate(string.to_string()))
+    }
 }
 
-fn parse_offset(string: &str) -> Result<Result<i8, String>, InstructionError> {
-    match parse_number(string).map(|x|
-        x.map(|x| i8::try_from(x as i16)))
-    {
-        Ok(Ok(Ok(value))) => Ok(Ok(value)),
-        Ok(Ok(Err(_))) => Err(InstructionError::InvalidImmediate(string.to_string())),
-        Ok(Err(s)) => Ok(Err(s)),
-        Err(err) => Err(err),
-    }
+fn parse_address(string: &str) -> Result<Value<u16>, InstructionError> {
+    parse_or_symbol::<u16, i16>(string)
+}
+
+fn parse_offset(string: &str) -> Result<Value<i8>, InstructionError> {
+    parse_or_symbol::<i8, u8>(string)
 }
 
 fn parse_register(string: &str) -> Result<u8, InstructionError> {
@@ -157,18 +172,8 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
     }
     let (mnem, line) = line.split_once(char::is_whitespace).unwrap_or((line, ""));
     let mnem = mnem.to_uppercase();
-    let mut ops: Vec<&str> = Vec::new();
-    let mut line = line;
-
-    loop {
-        line = line.trim_start();
-        if line.starts_with(';') || line.is_empty() {
-            break;
-        }
-        let operand;
-        (operand, line) = line.split_once([',', ';']).unwrap_or((line, ""));
-        ops.push(operand.trim());
-    }
+    let line = line.split_once(';').unwrap_or((line, "")).0; // get rid of comments
+    let ops: Vec<&str> = line.split(',').map(|x| x.trim()).filter(|x| !x.is_empty()).collect();
 
     // find bytes for instruction
     let mut last_err: (usize, InstructionError) = (0, InstructionError::InvalidMnemonic(mnem.clone()));
@@ -176,10 +181,12 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
         if instruction.1 != mnem {
             continue;
         }
+        eprintln!("{instruction:?} | {mnem:?} | {ops:?}");
         let mut bytes = vec![instruction.0];
         let mut ops = ops.iter();
         let mut symbols: Vec<(u64, String, usize)> = Vec::new();
         'inner: for optype in instruction.2 {
+            eprintln!("{optype:?}");
             if let OperandType::Hidden(val) = optype {
                 bytes.push(*val);
                 continue 'inner;
@@ -191,8 +198,8 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
             match optype {
                 OperandType::Hidden(_) => unreachable!(),
                 OperandType::Address => match parse_address(op) {
-                    Ok(Ok(addr)) => bytes.extend_from_slice(&addr.to_le_bytes()),
-                    Ok(Err(sym)) => {
+                    Ok(Value::Literal(addr)) => bytes.extend_from_slice(&addr.to_le_bytes()),
+                    Ok(Value::Symbol(sym)) => {
                         symbols.push((bytes.len() as u64, sym, 2));
                         bytes.extend_from_slice(&[0, 0])
                     },
@@ -204,8 +211,8 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
                     }
                 },
                 OperandType::Offset => match parse_offset(op) {
-                    Ok(Ok(offset)) => bytes.push(offset as u8),
-                    Ok(Err(sym)) => {
+                    Ok(Value::Literal(offset)) => bytes.push(offset as u8),
+                    Ok(Value::Symbol(sym)) => {
                         symbols.push((bytes.len() as u64, sym, 1));
                         bytes.extend_from_slice(&[0])
                     },
@@ -217,8 +224,8 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
                     }
                 },
                 OperandType::Byte => match parse_immediate8(op) {
-                    Ok(Ok(byte)) => bytes.push(byte),
-                    Ok(Err(sym)) => {
+                    Ok(Value::Literal(byte)) => bytes.push(byte),
+                    Ok(Value::Symbol(sym)) => {
                         symbols.push((bytes.len() as u64, sym, 1));
                         bytes.extend_from_slice(&[0])
                     },
@@ -230,8 +237,8 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
                     }
                 },
                 OperandType::Word => match parse_immediate(op) {
-                    Ok(Ok(word)) => bytes.extend_from_slice(&word.to_le_bytes()),
-                    Ok(Err(sym)) => {
+                    Ok(Value::Literal(word)) => bytes.extend_from_slice(&word.to_le_bytes()),
+                    Ok(Value::Symbol(sym)) => {
                         symbols.push((bytes.len() as u64, sym, 2));
                         bytes.extend_from_slice(&[0, 0])
                     },
@@ -311,17 +318,6 @@ pub enum DirectiveError {
     ExpectedString(String),
 }
 
-fn parse_integer<U: num::PrimInt + FromStr + 'static, I: num::PrimInt + FromStr + 'static + AsPrimitive<U>>(string: &str) -> Result<U, <I as num::Num>::FromStrRadixErr> {
-    if let Some(string) = string.strip_prefix('$') {
-        U::from_str_radix(string, 16)
-            .or_else(|_| I::from_str_radix(string, 16).map(|x| x.as_()))
-    } else if let Some(string) = string.strip_prefix('%') {
-        U::from_str_radix(string, 2).or_else(|_| I::from_str_radix(string, 2).map(|x| x.as_()))
-    } else {
-        U::from_str_radix(string, 10).or_else(|_| I::from_str_radix(string, 10).map(|x| x.as_()))
-    }
-}
-
 fn parse_directive(directive: &str, line: &str, binary: &mut Cursor<Vec<u8>>, symbols: &mut HashMap<String, u64>, _errata: &mut Vec<(u64, String, usize)>) -> Result<(), DirectiveError> {
     match directive {
         "def" => {
@@ -363,6 +359,7 @@ pub enum CompileError {
     InstructionError(InstructionError),
     DirectiveError(DirectiveError),
     UndefinedSymbol(String),
+    SymbolOutOfRange(String, usize)
 }
 
 const START_ADDRESS: u64 = 0x8000;
@@ -372,6 +369,7 @@ pub fn compile(source: impl BufRead) -> Result<Vec<u8>, (Option<usize>, CompileE
     let mut symbols: HashMap<String, u64> = HashMap::new();
     let mut errata: Vec<(u64, String, usize)> = Vec::new();
     for (line_no, line) in source.lines().enumerate() {
+        eprintln!("## line #{line_no} ##");
         let mut line = line.map_err(|e| (Some(line_no), CompileError::IOError(e)))?;
         while let Some((label, rest)) = parse_label(&line) {
             symbols.insert(label.to_string(), START_ADDRESS + binary.position());
@@ -389,8 +387,15 @@ pub fn compile(source: impl BufRead) -> Result<Vec<u8>, (Option<usize>, CompileE
     }
     for (pos, sym, len) in errata {
         binary.set_position(pos);
-        let bytes: Vec<u8> = symbols.get(&sym).ok_or((None, CompileError::UndefinedSymbol(sym)))?.to_le_bytes().into_iter().take(len).collect();
-        binary.write_all(&bytes).map_err(|e| (None, CompileError::IOError(e)))?;
+        let bytes = match symbols.get(&sym) {
+            Some(value) => value.to_le_bytes(),
+            None => return Err((None, CompileError::UndefinedSymbol(sym))),
+        };
+        let bytes = &bytes[..len];
+        if bytes[len..].iter().any(|x| !matches!(x, 0x00 | 0xFF)) {
+            return Err((None, CompileError::SymbolOutOfRange(sym, 1usize << len)));
+        }
+        binary.write_all(bytes).map_err(|e| (None, CompileError::IOError(e)))?;
     }
     Ok(binary.into_inner())
 }

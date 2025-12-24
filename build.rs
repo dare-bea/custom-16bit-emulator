@@ -12,6 +12,9 @@ fn parse_operand(string: &str) -> Option<String> {
     if string.is_empty() {
         return None;
     }
+    if let Some(c) = string.strip_prefix('!') {
+        return Some(format!("OperandType::Hidden({c})"))
+    }
     Some(match string {
         "addr" => "OperandType::Address".into(),
         "dst" | "src" | "reg" => "OperandType::Register".into(),

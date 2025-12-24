@@ -1,11 +1,11 @@
 main:
-    LDI B, data
+    LDI B, #data
     CALL print
-    HLT
+    HALT
 
 print:
-    LD B
-    TEST A
+    LD 0, B
+    TST A
     JZ print.end
     ST $7F00  ; Output to console port
     INC B
