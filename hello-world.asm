@@ -4,7 +4,7 @@ main:
     HALT
 
 print:
-    LD 0, B
+    LD B
     TST A
     JZ print.end
     ST $7F00  ; Output to console port
