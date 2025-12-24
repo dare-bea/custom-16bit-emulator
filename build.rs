@@ -43,6 +43,7 @@ fn main() {
         }
         let op1 = parse_operand(parts.next().unwrap_or(""));
         let op2 = parse_operand(parts.next().unwrap_or(""));
+        let op3 = parse_operand(parts.next().unwrap_or(""));
         let _bytes = parts.next();
         let _desc = parts.next();
         for cc in if mnem.contains("{cc}") {
@@ -77,6 +78,10 @@ fn main() {
                 }
                 if let Some(op2) = &op2 {
                     result.push_str(op2);
+                    result.push_str(", ");
+                }
+                if let Some(op3) = &op3 {
+                    result.push_str(op3);
                     result.push_str(", ");
                 }
             }
