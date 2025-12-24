@@ -2,6 +2,18 @@
 name = "asm"
 version = "0.1.0"
 edition = "2024"
+build = "build.rs"
 
 [lints.rust]
 # missing_docs = "warn"
+
+[dependencies]
+num = "0.4.3"
+
+[[bin]]
+name = "emulator"
+path = "src/emulator/main.rs"
+
+[[bin]]
+name = "compile"
+path = "src/compile/main.rs"

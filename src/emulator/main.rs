@@ -33,7 +33,7 @@ fn main() {
         &Instruction::make_bytes(&[
             /* $A000 */ Ok(LoadAddressIndirect(0, B)),
             /* $A003 */ Ok(Test(A)),
-            /* $A004 */ Ok(JumpIf(condition::ZERO, 0xA00E)),
+            /* $A004 */ Ok(JumpIf(condition::ConditionCode::Z.into(), 0xA00E)),
             /* $A007 */ Ok(StoreAddressAbsolute(0x7F00)),
             /* $A00A */ Ok(Increment(B)),
             /* $A00B */ Ok(JumpAbsolute(0xA000)),
@@ -46,9 +46,9 @@ fn main() {
         &Instruction::make_bytes(&[
             /* $A100 */ Ok(LoadAddressAbsolute(0x7F00)),
             /* $A103 */ Ok(CompareImmediate(A, u8::MAX.into())),
-            /* $A106 */ Ok(JumpIf(condition::ZERO, 0xA115)),
+            /* $A106 */ Ok(JumpIf(condition::ConditionCode::Z.into(), 0xA115)),
             /* $A109 */ Ok(CompareImmediate(A, '\n' as u8 as u16)),
-            /* $A10C */ Ok(JumpIf(condition::ZERO, 0xA115)),
+            /* $A10C */ Ok(JumpIf(condition::ConditionCode::Z.into(), 0xA115)),
             /* $A10F */ Ok(StoreAddressAbsolute(0x7F00)),
             /* $A112 */ Ok(JumpAbsolute(0xA100)),
             /* $A115 */ Ok(LoadImmediate(A, '\n' as u8 as u16)),

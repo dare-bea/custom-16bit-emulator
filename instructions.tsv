@@ -77,10 +77,11 @@ Op	Mnemonic	Operand 1	Operand 2	Bytes	Description
 4B	POP	D		1	Pop stack into D
 4C					
 4D	POP	SP		1	Pop stack into SP
+4E	POP	PC		1	Return from subroutine (Pop stack into PC)
 4E	RET			1	Return from subroutine (Pop stack into PC)
 4F	POP	FLAGS		1	Pop stack into FLAGS
 50	MOVS	dst	src	2	Move byte between memory locations addressed by registers
-51					
+51	NOP			1	No operation.
 52					
 53					
 54					

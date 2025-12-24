@@ -1,8 +1,8 @@
-use crate::memory::{Memory};
+use crate::memory::Memory;
 
 pub mod cpu;
-pub mod memory;
 pub mod execution;
+pub mod memory;
 
 use cpu::CPU;
 use memory::{Cartridge, MMU, RAM};

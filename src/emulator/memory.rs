@@ -1,5 +1,5 @@
-use std::io::{stdin, Read};
 use crate::memory::Memory;
+use std::io::{Read, stdin};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Cartridge {

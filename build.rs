@@ -2,15 +2,15 @@ mod condition {
     include!("./src/condition.rs");
 }
 
+use condition::ConditionCode;
 use std::env;
 use std::fs;
 use std::path::Path;
 use std::str::FromStr;
-use condition::ConditionCode;
 
 fn parse_operand(string: &str) -> Option<String> {
     if string.is_empty() {
-        return None
+        return None;
     }
     Some(match string {
         "addr" => "OperandType::Address".into(),
@@ -18,7 +18,7 @@ fn parse_operand(string: &str) -> Option<String> {
         "#imm8" | "imm8" => "OperandType::Byte".into(),
         "#imm" | "#imm16" | "imm" | "imm16" => "OperandType::Word".into(),
         "rel" => "OperandType::Offset".into(),
-        c => format!("OperandType::Const(\"{c}\")")
+        c => format!("OperandType::Const(\"{c}\")"),
     })
 }
 
@@ -32,7 +32,8 @@ fn main() {
         // Op	 Mnemonic	 Operand 1	 Operand 2	 Bytes	 Description
         // May contain condition code in mnemonic
         let mut parts = line.split('\t');
-        let opcode = u8::from_str_radix(parts.next().expect("Expected opcode"), 16).expect("Invalid opcode");
+        let opcode =
+            u8::from_str_radix(parts.next().expect("Expected opcode"), 16).expect("Invalid opcode");
         let mnem = parts.next().expect("Expected mnemonic");
         if mnem.is_empty() || mnem.starts_with('#') {
             continue;
@@ -43,14 +44,13 @@ fn main() {
         let _desc = parts.next();
         for cc in if mnem.contains("{cc}") {
             vec![
-                "B",  "BE",  "EQ",  "AE",  "A",
-                "NB", "NBE", "NEQ", "NAE", "NA",
-                "L",  "LE",  "E",   "G",   "GE",
-                "NL", "NLE", "NE",  "NG",  "NGE",
-                "LT", "GE",  "NLT", "NGE",
-                "Z",  "S",   "C",   "O",
-                "NZ", "NS",  "NC",  "NO",
-            ].into_iter().map(Some).collect()
+                "B", "BE", "EQ", "AE", "A", "NB", "NBE", "NEQ", "NAE", "NA", "L", "LE", "E", "G",
+                "GE", "NL", "NLE", "NE", "NG", "NGE", "LT", "GE", "NLT", "NGE", "Z", "S", "C", "O",
+                "NZ", "NS", "NC", "NO",
+            ]
+            .into_iter()
+            .map(Some)
+            .collect()
         } else {
             vec![None]
         } {
@@ -63,7 +63,9 @@ fn main() {
             } else {
                 result.push_str(&format!("({opcode}, \"{mnem}\", &["));
             }
-            if let (Some("OperandType::Register"), Some("OperandType::Register")) = (op1.as_deref(), op2.as_deref()) {
+            if let (Some("OperandType::Register"), Some("OperandType::Register")) =
+                (op1.as_deref(), op2.as_deref())
+            {
                 result.push_str("OperandType::RegisterPair, ");
             } else {
                 if let Some(op1) = &op1 {

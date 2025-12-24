@@ -2,7 +2,22 @@ use std::str::FromStr;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
 pub enum ConditionCode {
-    B, BE, AE, A, L, LE, GE, G, Z, S, C, O, NZ, NS, NC, NO
+    B,
+    BE,
+    AE,
+    A,
+    L,
+    LE,
+    GE,
+    G,
+    Z,
+    S,
+    C,
+    O,
+    NZ,
+    NS,
+    NC,
+    NO,
 }
 
 impl FromStr for ConditionCode {
@@ -72,18 +87,18 @@ impl ToString for ConditionCode {
 impl From<ConditionCode> for u8 {
     fn from(value: ConditionCode) -> Self {
         match value {
-            ConditionCode::B =>  0x4,
+            ConditionCode::B => 0x4,
             ConditionCode::BE => 0x5,
             ConditionCode::AE => 0xC,
-            ConditionCode::A =>  0xD,
-            ConditionCode::L =>  0x6,
+            ConditionCode::A => 0xD,
+            ConditionCode::L => 0x6,
             ConditionCode::LE => 0x7,
             ConditionCode::GE => 0xE,
-            ConditionCode::G =>  0xF,
-            ConditionCode::Z =>  0x0,
-            ConditionCode::S =>  0x1,
-            ConditionCode::C =>  0x2,
-            ConditionCode::O =>  0x3,
+            ConditionCode::G => 0xF,
+            ConditionCode::Z => 0x0,
+            ConditionCode::S => 0x1,
+            ConditionCode::C => 0x2,
+            ConditionCode::O => 0x3,
             ConditionCode::NZ => 0x8,
             ConditionCode::NS => 0x9,
             ConditionCode::NC => 0xA,

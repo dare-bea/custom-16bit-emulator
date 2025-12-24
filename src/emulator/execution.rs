@@ -1,6 +1,6 @@
+use super::{Emulator, Memory};
 use crate::flag;
 use crate::isa::Instruction::{self, *};
-use super::{Emulator, Memory};
 
 impl Emulator {
     pub fn next_cpu_instruction(&self) -> (Instruction, u32) {
@@ -46,12 +46,14 @@ impl Emulator {
             LoadAddressStackOffset(offset) => {
                 self.cpu.a = self
                     .memory
-                    .read(self.cpu.sp.wrapping_add(offset as u16).into()).into();
+                    .read(self.cpu.sp.wrapping_add(offset as u16).into())
+                    .into();
             }
             LoadAddressIndirect(addr, reg) => {
                 self.cpu.a = self
                     .memory
-                    .read(addr.wrapping_add(self.cpu.register(reg)).into()).into();
+                    .read(addr.wrapping_add(self.cpu.register(reg)).into())
+                    .into();
             }
             LoadWordAbsolute(addr) => {
                 self.cpu.a = self.memory.read_word(addr.into());
