@@ -2,6 +2,10 @@
 
 An emulator for a custom 16-bit console.
 
+## Plans
+
+- [ ] Rewrite emulator for new ISA.
+
 ## Registers
 
 - [x] Accumulator Register: Used in computations and memory access
@@ -20,7 +24,7 @@ An emulator for a custom 16-bit console.
 
 ## Instruction Set
 
-- [x] [instructions.csv](instructions.csv).
+- [x] [instructions.tsv](instructions.tsv).
 
 ## Memory Layout
 
