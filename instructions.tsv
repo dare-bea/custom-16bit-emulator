@@ -12,45 +12,45 @@ Op	Mnem.	Oper. 1	Oper. 2	Oper. 3	Bytes	Description
 08	LD	addr	A		3	Load byte at [addr + A] into A
 08	LD	!0	!0	A	3	Load byte at [A] into A
 09	LD	addr	B		3	Load byte at [addr + B] into A
-09	LD	!0	!0	B	3	<TODO>
+09	LD	!0	!0	B	3	Load byte at [B] into A
 0A	LD	addr	C		3	Load byte at [addr + C] into A
-0A	LD	!0	!0	C	3	<TODO>
+0A	LD	!0	!0	C	3	Load byte at [C] into A
 0B	LD	addr	D		3	Load byte at [addr + D] into A
-0B	LD	!0	!0	D	3	<TODO>
+0B	LD	!0	!0	D	3	Load byte at [D] into A
 0C	LDW	addr	A		3	Load word at [addr + A] into A
-0C	LDW	!0	!0	A	3	<TODO>
+0C	LDW	!0	!0	A	3	Load word at [A] into A
 0D	LDW	addr	B		3	Load word at [addr + B] into A
-0D	LDW	!0	!0	B	3	<TODO>
+0D	LDW	!0	!0	B	3	Load word at [B] into A
 0E	LDW	addr	C		3	Load word at [addr + C] into A
-0E	LDW	!0	!0	C	3	<TODO>
+0E	LDW	!0	!0	C	3	Load word at [C] into A
 0F	LDW	addr	D		3	Load word at [addr + D] into A
-0F	LDW	!0	!0	D	3	<TODO>
+0F	LDW	!0	!0	D	3	Load word at [D] into A
 10	ST	addr			3	Store byte from A into memory at [addr]
 11	ST	addr	SP		3	Store byte from A into memory at [addr + SP]
-11	ST	!0	!0	SP	3	<TODO>
+11	ST	!0	!0	SP	3	Store byte from A into memory at [SP]
 12						
 13	STS	src	dst		2	Store byte from src into memory addressed by dst register
 14	STW	addr			3	Store word from A into memory at [addr]
 15	STW	addr	SP		3	Store word from A into memory at [addr + SP]
-15	STW	!0	!0	SP	3	<TODO>
+15	STW	!0	!0	SP	3	Store word from A into memory at [SP]
 16						
 17	STSW	src	dst		2	Store word from src into memory addressed by dst register
 18	ST	addr	A		3	Store byte from A into memory at [addr + A]
-18	ST	!0	!0	A	3	<TODO>
+18	ST	!0	!0	A	3	Store byte from A into memory at [A]
 19	ST	addr	B		3	Store byte from A into memory at [addr + B]
-19	ST	!0	!0	B	3	<TODO>
+19	ST	!0	!0	B	3	Store byte from A into memory at [B]
 1A	ST	addr	C		3	Store byte from A into memory at [addr + C]
-1A	ST	!0	!0	C	3	<TODO>
+1A	ST	!0	!0	C	3	Store byte from A into memory at [C]
 1B	ST	addr	D		3	Store byte from A into memory at [addr + D]
-1B	ST	!0	!0	D	3	<TODO>
+1B	ST	!0	!0	D	3	Store byte from A into memory at [D]
 1C	STW	addr	A		3	Store word from A into memory at [addr + A]
-1C	STW	!0	!0	A	3	<TODO>
+1C	STW	!0	!0	A	3	Store word from A into memory at [A]
 1D	STW	addr	B		3	Store word from A into memory at [addr + B]
-1D	STW	!0	!0	B	3	<TODO>
+1D	STW	!0	!0	B	3	Store word from A into memory at [B]
 1E	STW	addr	C		3	Store word from A into memory at [addr + C]
-1E	STW	!0	!0	C	3	<TODO>
+1E	STW	!0	!0	C	3	Store word from A into memory at [C]
 1F	STW	addr	D		3	Store word from A into memory at [addr + D]
-1F	STW	!0	!0	D	3	<TODO>
+1F	STW	!0	!0	D	3	Store word from A into memory at [D]
 20	LDI	A	#imm8		2	Load 8-bit immediate into A
 21	LDI	B	#imm8		2	Load 8-bit immediate into B
 22	LDI	C	#imm8		2	Load 8-bit immediate into C
