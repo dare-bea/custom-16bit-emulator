@@ -11,6 +11,8 @@ fn main() {
     if let Err(err) = run() {
         eprintln!("error: {err}");
         process::exit(1);
+    } else {
+        eprintln!("compiled successfully!")
     }
 }
 
