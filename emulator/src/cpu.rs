@@ -11,7 +11,7 @@ pub struct Cpu {
 
 impl Default for Cpu {
     fn default() -> Self {
-        return Self {
+        Self {
             a: 0,
             b: 0,
             c: 0,
@@ -19,7 +19,7 @@ impl Default for Cpu {
             sp: 0x7F00,
             pc: 0x0000,
             flags: 0,
-        };
+        }
     }
 }
 

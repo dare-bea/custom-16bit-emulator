@@ -1,7 +1,5 @@
 use std::{
-    collections::HashMap,
-    io::{self, BufRead, Cursor, Write},
-    str::FromStr,
+    collections::HashMap, fmt::Display, io::{self, BufRead, Cursor, Write}, str::FromStr
 };
 
 use num::cast::AsPrimitive;
@@ -156,9 +154,9 @@ enum OperandType {
     Hidden(u8),
 }
 
-impl ToString for OperandType {
-    fn to_string(&self) -> String {
-        match self {
+impl Display for OperandType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
             Self::Address => String::from("addr"),
             Self::Offset => String::from("rel"),
             Self::Byte => String::from("#imm8"),
@@ -167,7 +165,7 @@ impl ToString for OperandType {
             Self::RegisterPair => String::from("dst, src"),
             Self::Const(s) => String::from(*s),
             Self::Hidden(x) => format!("({x})"),
-        }
+        })
     }
 }
 
@@ -274,7 +272,7 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
                     }
                 },
                 OperandType::Register => match parse_register(op) {
-                    Ok(reg) => bytes.push(reg as u8),
+                    Ok(reg) => bytes.push(reg),
                     Err(e) => {
                         if last_err.0 < bytes.len() {
                             last_err = (bytes.len(), e)
@@ -297,7 +295,7 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
                         }
                     },
                 ) {
-                    Ok(reg) => bytes.push(reg as u8),
+                    Ok(reg) => bytes.push(reg),
                     Err(e) => {
                         if last_err.0 < bytes.len() {
                             last_err = (bytes.len(), e)
@@ -321,14 +319,11 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
                 }
             }
         }
-        match ops.next() {
-            Some(o) => {
-                if last_err.0 < bytes.len() {
-                    last_err = (bytes.len(), InstructionError::ExtraOperand(o.to_string()))
-                }
-                continue 'outer;
+        if let Some(o) = ops.next() {
+            if last_err.0 < bytes.len() {
+                last_err = (bytes.len(), InstructionError::ExtraOperand(o.to_string()))
             }
-            None => {}
+            continue 'outer;
         }
         #[cfg(debug_assertions)]
         eprintln!("{bytes:?} | {symbols:?}");
@@ -337,7 +332,7 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
     Err(last_err.1)
 }
 
-fn parse_label<'a>(line: &'a str) -> Option<(&'a str, &'a str)> {
+fn parse_label(line: &str) -> Option<(&str, &str)> {
     let line = line.trim_start();
     line.split_once(':')
 }

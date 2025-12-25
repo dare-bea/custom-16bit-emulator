@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{fmt::Display, str::FromStr};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
 pub enum Flag {
@@ -31,17 +31,16 @@ impl FromStr for Flag {
     }
 }
 
-impl ToString for Flag {
-    fn to_string(&self) -> String {
-        match self {
+impl Display for Flag {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
             Self::Zero => "ZF",
             Self::Sign => "SF",
             Self::Carry => "CF",
             Self::Overflow => "OF",
             Self::EnableInterrupt => "EIF",
             Self::Halt => "HLT",
-        }
-        .to_string()
+        })
     }
 }
 

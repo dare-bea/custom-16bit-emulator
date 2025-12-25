@@ -102,9 +102,9 @@ fn main() {
                 result.push_str("]),\n");
             }
         }
-        result.push_str("\n");
+        result.push('\n');
     }
-    result.push_str("]");
+    result.push(']');
     fs::write(dest_path, result).unwrap();
     println!("cargo:rerun-if-changed=instructions.tsv");
     println!("cargo:rerun-if-changed=build.rs");

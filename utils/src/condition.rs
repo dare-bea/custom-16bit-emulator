@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{fmt::Display, str::FromStr};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
 pub enum ConditionCode {
@@ -61,9 +61,9 @@ impl FromStr for ConditionCode {
     }
 }
 
-impl ToString for ConditionCode {
-    fn to_string(&self) -> String {
-        String::from(match self {
+impl Display for ConditionCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
             ConditionCode::B => "B",
             ConditionCode::BE => "BE",
             ConditionCode::AE => "AE",

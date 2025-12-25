@@ -18,11 +18,11 @@ where
     B: Seek,
 {
     pub fn new(mut first: A, mut second: B) -> io::Result<Self> {
-        let cur1 = first.seek(SeekFrom::Current(0))?;
-        let len_first = first.seek(SeekFrom::End(0))?;
+        let cur1 = first.stream_position()?;
+        let len_first = first.stream_position()?;
         first.seek(SeekFrom::Start(cur1))?;
 
-        let cur2 = second.seek(SeekFrom::Current(0))?;
+        let cur2 = second.stream_position()?;
         let len_second = second.seek(SeekFrom::End(0))?;
         second.seek(SeekFrom::Start(cur2))?;
 

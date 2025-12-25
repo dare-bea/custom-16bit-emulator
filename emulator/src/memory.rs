@@ -42,12 +42,12 @@ impl Mmu {
 impl Deref for Mmu {
     type Target = MmuInner;
     fn deref(&self) -> &Self::Target {
-        return &self.0;
+        &self.0
     }
 }
 
 impl DerefMut for Mmu {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        return &mut self.0;
+        &mut self.0
     }
 }
