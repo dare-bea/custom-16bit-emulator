@@ -1,15 +1,12 @@
 use cpu::Cpu;
-use memory::Mmu;
-use std::io::Read;
-use std::io::Seek;
+use memory::{Mmu, Ram, SimpleRom};
+use std::io::{Read, Seek};
 use std::{fmt::Debug, io};
 use utils::flag::Flag;
 
 pub mod cpu;
 pub mod memory;
 pub mod step;
-
-use crate::memory::{Ram, SimpleRom};
 
 #[derive(Debug)]
 pub struct Emulator {
@@ -37,5 +34,17 @@ impl Emulator {
             self.cpu.flags |= Flag::Halt.to_bitmask(); // TODO: Add Display
         }
         Ok(())
+    }
+
+    pub fn next_byte(&mut self) -> io::Result<u8> {
+        let value = self.memory.read_byte(self.cpu.pc)?;
+        self.cpu.pc = self.cpu.pc.wrapping_add(1);
+        Ok(value)
+    }
+
+    pub fn next_word(&mut self) -> io::Result<u16> {
+        let value = self.memory.read_word(self.cpu.pc)?;
+        self.cpu.pc = self.cpu.pc.wrapping_add(2);
+        Ok(value)
     }
 }
