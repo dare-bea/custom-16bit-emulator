@@ -4,7 +4,6 @@ use num::cast::AsPrimitive;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum InstructionError {
-    ExpectedMemonic,
     InvalidNumber(String),
     InvalidImmediate(String),
     InvalidRegister(String),
@@ -181,11 +180,13 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
         if instruction.1 != mnem {
             continue;
         }
+        #[cfg(debug_assertions)]
         eprintln!("{instruction:?} | {mnem:?} | {ops:?}");
         let mut bytes = vec![instruction.0];
         let mut ops = ops.iter();
         let mut symbols: Vec<(u64, String, usize)> = Vec::new();
         'inner: for optype in instruction.2 {
+            #[cfg(debug_assertions)]
             eprintln!("{optype:?}");
             if let OperandType::Hidden(val) = optype {
                 bytes.push(*val);
@@ -316,9 +317,12 @@ pub enum DirectiveError {
     MissingOperand(String),
     ExtraOperand(String),
     ExpectedString(String),
+    SymbolsNotSupported(String),
+    UndefinedSymbol(String),
+    SymbolOutOfRange(u64, )
 }
 
-fn parse_directive(directive: &str, line: &str, binary: &mut Cursor<Vec<u8>>, symbols: &mut HashMap<String, u64>, _errata: &mut Vec<(u64, String, usize)>) -> Result<(), DirectiveError> {
+fn parse_directive(directive: &str, line: &str, binary: &mut Cursor<Vec<u8>>, symbols: &mut HashMap<String, u64>, errata: &mut Vec<(u64, String, usize)>) -> Result<(), DirectiveError> {
     match directive {
         "def" => {
             let mut operands = line.split_whitespace();
@@ -326,23 +330,50 @@ fn parse_directive(directive: &str, line: &str, binary: &mut Cursor<Vec<u8>>, sy
             let string = operands.next().ok_or(DirectiveError::MissingOperand("value".to_string()))?.trim();
             if let Some(s) = operands.next() {return Err(DirectiveError::ExtraOperand(s.to_string()))};
 
-            let value = parse_integer::<u16, i16>(string).map_err(|_| DirectiveError::InvalidNumber(string.to_string()))?;
+            let value = match parse_or_symbol::<u16, i16>(string).map_err(|_| DirectiveError::InvalidNumber(string.to_string()))? {
+                Value::Literal(x) => x as u64,
+                Value::Symbol(s) => match symbols.get(&s) {
+                    Some(x) => *x,
+                    None => return Err(DirectiveError::UndefinedSymbol(s)),
+                }
+            };
 
-            symbols.insert(sym.to_string(), value as u64);
+            symbols.insert(sym.to_string(), value);
         }
         "db" => for string in line.split_whitespace() {
             let string = string.trim();
-            let num = parse_integer::<u8, i8>(string).map_err(|_| DirectiveError::InvalidNumber(string.to_string()))?;
-            binary.write_all(&[num]).map_err(DirectiveError::IOError)?;
+            match parse_or_symbol::<u8, i8>(string).map_err(|_| DirectiveError::InvalidNumber(string.to_string()))? {
+                Value::Literal(value) => {
+                    binary.write_all(&[value]).map_err(DirectiveError::IOError)?;
+                },
+                Value::Symbol(s) => {
+                    errata.push((binary.position(), s, 1));
+                    binary.write_all(&[0]).map_err(DirectiveError::IOError)?;
+                }
+            };
         }
         "dw" => for string in line.split_whitespace() {
             let string = string.trim();
-            let num = parse_integer::<u16, i16>(string).map_err(|_| DirectiveError::InvalidNumber(string.to_string()))?;
-            binary.write_all(&num.to_le_bytes()).map_err(DirectiveError::IOError)?;
+            match parse_or_symbol::<u16, i16>(string).map_err(|_| DirectiveError::InvalidNumber(string.to_string()))? {
+                Value::Literal(value) => {
+                    binary.write_all(&value.to_le_bytes()).map_err(DirectiveError::IOError)?;
+                },
+                Value::Symbol(s) => {
+                    errata.push((binary.position(), s, 2));
+                    binary.write_all(&[0, 0]).map_err(DirectiveError::IOError)?;
+                }
+            };
         }
         "org" => {
-            let address = parse_integer::<u64, i64>(line.trim()).map_err(|_| DirectiveError::InvalidNumber(line.to_string()))? - START_ADDRESS;
-            binary.set_position(address);
+            let string = line.trim();
+            let value = match parse_or_symbol::<u16, i16>(string).map_err(|_| DirectiveError::InvalidNumber(string.to_string()))? {
+                Value::Literal(x) => x as u64,
+                Value::Symbol(s) => match symbols.get(&s) {
+                    Some(x) => *x,
+                    None => return Err(DirectiveError::UndefinedSymbol(s)),
+                }
+            };
+            binary.set_position(value - START_ADDRESS);
         }
         "ascii" => {
             let string = line.trim().strip_prefix('"').and_then(|l| l.strip_suffix('"')).ok_or(DirectiveError::ExpectedString(line.to_string()))?;
@@ -369,6 +400,7 @@ pub fn compile(source: impl BufRead) -> Result<Vec<u8>, (Option<usize>, CompileE
     let mut symbols: HashMap<String, u64> = HashMap::new();
     let mut errata: Vec<(u64, String, usize)> = Vec::new();
     for (line_no, line) in source.lines().enumerate() {
+        #[cfg(debug_assertions)]
         eprintln!("## line #{line_no} ##");
         let mut line = line.map_err(|e| (Some(line_no), CompileError::IOError(e)))?;
         while let Some((label, rest)) = parse_label(&line) {

@@ -16,3 +16,6 @@ print:
 data:
     .ascii "Hello, World!"
     .db $0A $00
+
+.org $FFFE
+.dw $8000
