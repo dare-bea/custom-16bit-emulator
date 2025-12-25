@@ -30,7 +30,8 @@ An emulator for a custom 16-bit console.
 
 0x10000 bytes of addressable memory (64KiB)
 
-- 0x4000..0x6FFF: RAM
+- 0x0000..0x2FFF: RAM
+- 0x7000..0x7EFF: Stack
 - 0x7F00..0x7FFF: Port In/Out
     - 0x7F00: Console In/Out
 - 0x8000..0xFFFF: ROM

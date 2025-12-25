@@ -10,6 +10,20 @@ pub struct Cpu {
     pub flags: u16,
 }
 
+impl Default for Cpu {
+    fn default() -> Self {
+        return Self {
+            a: 0,
+            b: 0,
+            c: 0,
+            d: 0,
+            sp: 0x7F00,
+            pc: 0x8000,
+            flags: 0,
+        };
+    }
+}
+
 pub struct Memory;
 
 pub struct Emulator {

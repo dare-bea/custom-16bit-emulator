@@ -20,7 +20,7 @@ impl FromStr for Flag {
             "OF" => Ok(Self::Overflow),
             "EIF" => Ok(Self::EnableInterrupt),
             "HLT" => Ok(Self::Halt),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }
@@ -33,8 +33,9 @@ impl ToString for Flag {
             Self::Carry => "CF",
             Self::Overflow => "OF",
             Self::EnableInterrupt => "EIF",
-            Self::Halt => "HLT"
-        }.to_string()
+            Self::Halt => "HLT",
+        }
+        .to_string()
     }
 }
 
@@ -61,12 +62,15 @@ impl TryFrom<u8> for Flag {
             3 => Ok(Self::Overflow),
             6 => Ok(Self::EnableInterrupt),
             7 => Ok(Flag::Halt),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }
 
-pub fn set_flag<F>(status: &mut u8, flag: F, value: bool) where u8: From<F> {
+pub fn set_flag<F>(status: &mut u8, flag: F, value: bool)
+where
+    u8: From<F>,
+{
     if value {
         *status |= 1 << u8::from(flag);
     } else {
@@ -74,6 +78,9 @@ pub fn set_flag<F>(status: &mut u8, flag: F, value: bool) where u8: From<F> {
     }
 }
 
-pub fn get_flag<F>(status: u8, flag: F) -> bool where u8: From<F> {
+pub fn get_flag<F>(status: u8, flag: F) -> bool
+where
+    u8: From<F>,
+{
     (status & (1 << u8::from(flag))) != 0
 }

@@ -1,16 +1,16 @@
-use utils::condition::ConditionCode;
-use utils::flag::Flag;
 use std::env;
 use std::fs;
 use std::path::Path;
 use std::str::FromStr;
+use utils::condition::ConditionCode;
+use utils::flag::Flag;
 
 fn parse_operand(string: &str) -> Option<String> {
     if string.is_empty() {
         return None;
     }
     if let Some(c) = string.strip_prefix('!') {
-        return Some(format!("OperandType::Hidden({c})"))
+        return Some(format!("OperandType::Hidden({c})"));
     }
     Some(match string {
         "addr" => "OperandType::Address".into(),
@@ -54,51 +54,54 @@ fn main() {
             .collect()
         } else {
             vec![None]
-        } { for flag in if mnem.contains("{flag}") {
-            vec![
-                "ZF", "SF", "CF", "OF", "EIF", "HLT",
-            ]
-            .into_iter()
-            .map(Some)
-            .collect()
-        } else {
-            vec![None]
         } {
-            result.push_str("  ");
-            let mut mnem = mnem.to_string();
-            let mut mnem_ops = String::new();
-            if let Some(cc) = cc {
-                mnem = mnem.replace("{cc}", cc);
-                let cc_val = u8::from(ConditionCode::from_str(cc).unwrap());
-                mnem_ops.push_str(&format!("OperandType::Hidden({cc_val}), "));
-            }
-            if let Some(flag) = flag {
-                mnem = mnem.replace("{flag}", flag);
-                for flag_val in (1u16 << u8::from(Flag::from_str(flag).unwrap())).to_le_bytes().into_iter() {
-                    mnem_ops.push_str(&format!("OperandType::Hidden({flag_val}), "));
-                }
-            }
-            result.push_str(&format!("({opcode}, \"{mnem}\", &[{mnem_ops}"));
-            if let (Some("OperandType::Register"), Some("OperandType::Register")) =
-                (op1.as_deref(), op2.as_deref())
-            {
-                result.push_str("OperandType::RegisterPair, ");
+            for flag in if mnem.contains("{flag}") {
+                vec!["ZF", "SF", "CF", "OF", "EIF", "HLT"]
+                    .into_iter()
+                    .map(Some)
+                    .collect()
             } else {
-                if let Some(op1) = &op1 {
-                    result.push_str(op1);
-                    result.push_str(", ");
+                vec![None]
+            } {
+                result.push_str("  ");
+                let mut mnem = mnem.to_string();
+                let mut mnem_ops = String::new();
+                if let Some(cc) = cc {
+                    mnem = mnem.replace("{cc}", cc);
+                    let cc_val = u8::from(ConditionCode::from_str(cc).unwrap());
+                    mnem_ops.push_str(&format!("OperandType::Hidden({cc_val}), "));
                 }
-                if let Some(op2) = &op2 {
-                    result.push_str(op2);
-                    result.push_str(", ");
+                if let Some(flag) = flag {
+                    mnem = mnem.replace("{flag}", flag);
+                    for flag_val in (1u16 << u8::from(Flag::from_str(flag).unwrap()))
+                        .to_le_bytes()
+                        .into_iter()
+                    {
+                        mnem_ops.push_str(&format!("OperandType::Hidden({flag_val}), "));
+                    }
                 }
-                if let Some(op3) = &op3 {
-                    result.push_str(op3);
-                    result.push_str(", ");
+                result.push_str(&format!("({opcode}, \"{mnem}\", &[{mnem_ops}"));
+                if let (Some("OperandType::Register"), Some("OperandType::Register")) =
+                    (op1.as_deref(), op2.as_deref())
+                {
+                    result.push_str("OperandType::RegisterPair, ");
+                } else {
+                    if let Some(op1) = &op1 {
+                        result.push_str(op1);
+                        result.push_str(", ");
+                    }
+                    if let Some(op2) = &op2 {
+                        result.push_str(op2);
+                        result.push_str(", ");
+                    }
+                    if let Some(op3) = &op3 {
+                        result.push_str(op3);
+                        result.push_str(", ");
+                    }
                 }
+                result.push_str("]),\n");
             }
-            result.push_str("]),\n");
-        } }
+        }
         result.push_str("\n");
     }
     result.push_str("]");

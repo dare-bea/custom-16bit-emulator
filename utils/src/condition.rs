@@ -128,7 +128,7 @@ impl TryFrom<u8> for ConditionCode {
             0x9 => Ok(ConditionCode::NS),
             0xA => Ok(ConditionCode::NC),
             0xB => Ok(ConditionCode::NO),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }

@@ -1,4 +1,8 @@
-use std::{collections::HashMap, io::{self, BufRead, Cursor, Write}, str::FromStr};
+use std::{
+    collections::HashMap,
+    io::{self, BufRead, Cursor, Write},
+    str::FromStr,
+};
 
 use num::cast::AsPrimitive;
 
@@ -9,7 +13,7 @@ pub enum InstructionError {
     InvalidRegister(String),
     InvalidOffset(String),
     InvalidMnemonic(String),
-    InvalidConstant{expected: String, found: String},
+    InvalidConstant { expected: String, found: String },
     MissingOperand(String),
     ExtraOperand(String),
 }
@@ -40,10 +44,14 @@ impl std::fmt::Display for Register {
     }
 }
 
-fn parse_integer<U: num::PrimInt + FromStr + 'static, I: num::PrimInt + FromStr + 'static + AsPrimitive<U>>(string: &str) -> Result<U, <I as num::Num>::FromStrRadixErr> {
+fn parse_integer<
+    U: num::PrimInt + FromStr + 'static,
+    I: num::PrimInt + FromStr + 'static + AsPrimitive<U>,
+>(
+    string: &str,
+) -> Result<U, <I as num::Num>::FromStrRadixErr> {
     if let Some(string) = string.strip_prefix('$') {
-        U::from_str_radix(string, 16)
-            .or_else(|_| I::from_str_radix(string, 16).map(|x| x.as_()))
+        U::from_str_radix(string, 16).or_else(|_| I::from_str_radix(string, 16).map(|x| x.as_()))
     } else if let Some(string) = string.strip_prefix('%') {
         U::from_str_radix(string, 2).or_else(|_| I::from_str_radix(string, 2).map(|x| x.as_()))
     } else {
@@ -52,9 +60,11 @@ fn parse_integer<U: num::PrimInt + FromStr + 'static, I: num::PrimInt + FromStr 
 }
 
 fn parse_symbol(string: &str) -> Result<String, ()> {
-    if string.chars().all(|c|
-        c.is_alphanumeric() || matches!(c, '_' | '-' | '.' | '+')
-    ) && parse_register(string).is_err() {
+    if string
+        .chars()
+        .all(|c| c.is_alphanumeric() || matches!(c, '_' | '-' | '.' | '+'))
+        && parse_register(string).is_err()
+    {
         Ok(string.to_string())
     } else {
         Err(())
@@ -63,14 +73,21 @@ fn parse_symbol(string: &str) -> Result<String, ()> {
 
 enum Value<T> {
     Literal(T),
-    Symbol(String)
+    Symbol(String),
 }
 
-fn parse_or_symbol<U: num::PrimInt + std::str::FromStr + 'static, I: num::PrimInt + num::traits::AsPrimitive<U> + std::str::FromStr>(string: &str) -> Result<Value<U>, InstructionError> {
+fn parse_or_symbol<
+    U: num::PrimInt + std::str::FromStr + 'static,
+    I: num::PrimInt + num::traits::AsPrimitive<U> + std::str::FromStr,
+>(
+    string: &str,
+) -> Result<Value<U>, InstructionError> {
     // Try conversion to u16, then try i16 (converted to u16 afterwards).
     match parse_integer::<U, I>(string) {
         Ok(value) => Ok(Value::Literal(value)),
-        Err(_) => parse_symbol(string).map(Value::Symbol).map_err(|_| InstructionError::InvalidNumber(string.to_string()))
+        Err(_) => parse_symbol(string)
+            .map(Value::Symbol)
+            .map_err(|_| InstructionError::InvalidNumber(string.to_string())),
     }
 }
 
@@ -159,7 +176,7 @@ const INSTRUCTIONS: &[(u8, &str, &[OperandType])] =
 
 struct InstructionEmission {
     bytes: Vec<u8>,
-    symbols: Vec<(u64, String, usize)>
+    symbols: Vec<(u64, String, usize)>,
 }
 
 fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError> {
@@ -167,15 +184,23 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
 
     let line = line.trim_start();
     if line.starts_with(';') || line.is_empty() {
-        return Ok(InstructionEmission {bytes: vec![], symbols: vec![]})
+        return Ok(InstructionEmission {
+            bytes: vec![],
+            symbols: vec![],
+        });
     }
     let (mnem, line) = line.split_once(char::is_whitespace).unwrap_or((line, ""));
     let mnem = mnem.to_uppercase();
     let line = line.split_once(';').unwrap_or((line, "")).0; // get rid of comments
-    let ops: Vec<&str> = line.split(',').map(|x| x.trim()).filter(|x| !x.is_empty()).collect();
+    let ops: Vec<&str> = line
+        .split(',')
+        .map(|x| x.trim())
+        .filter(|x| !x.is_empty())
+        .collect();
 
     // find bytes for instruction
-    let mut last_err: (usize, InstructionError) = (0, InstructionError::InvalidMnemonic(mnem.clone()));
+    let mut last_err: (usize, InstructionError) =
+        (0, InstructionError::InvalidMnemonic(mnem.clone()));
     'outer: for instruction in INSTRUCTIONS {
         if instruction.1 != mnem {
             continue;
@@ -186,8 +211,6 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
         let mut ops = ops.iter();
         let mut symbols: Vec<(u64, String, usize)> = Vec::new();
         'inner: for optype in instruction.2 {
-            #[cfg(debug_assertions)]
-            eprintln!("{optype:?}");
             if let OperandType::Hidden(val) = optype {
                 bytes.push(*val);
                 continue 'inner;
@@ -203,7 +226,7 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
                     Ok(Value::Symbol(sym)) => {
                         symbols.push((bytes.len() as u64, sym, 2));
                         bytes.extend_from_slice(&[0, 0])
-                    },
+                    }
                     Err(e) => {
                         if last_err.0 < bytes.len() {
                             last_err = (bytes.len(), e)
@@ -216,7 +239,7 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
                     Ok(Value::Symbol(sym)) => {
                         symbols.push((bytes.len() as u64, sym, 1));
                         bytes.extend_from_slice(&[0])
-                    },
+                    }
                     Err(e) => {
                         if last_err.0 < bytes.len() {
                             last_err = (bytes.len(), e)
@@ -229,7 +252,7 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
                     Ok(Value::Symbol(sym)) => {
                         symbols.push((bytes.len() as u64, sym, 1));
                         bytes.extend_from_slice(&[0])
-                    },
+                    }
                     Err(e) => {
                         if last_err.0 < bytes.len() {
                             last_err = (bytes.len(), e)
@@ -242,7 +265,7 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
                     Ok(Value::Symbol(sym)) => {
                         symbols.push((bytes.len() as u64, sym, 2));
                         bytes.extend_from_slice(&[0, 0])
-                    },
+                    }
                     Err(e) => {
                         if last_err.0 < bytes.len() {
                             last_err = (bytes.len(), e)
@@ -265,8 +288,10 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
                         Some(op) => op,
                         None => {
                             if last_err.0 < bytes.len() {
-                                last_err =
-                                    (bytes.len(), InstructionError::MissingOperand("src".to_string()))
+                                last_err = (
+                                    bytes.len(),
+                                    InstructionError::MissingOperand("src".to_string()),
+                                )
                             }
                             continue 'outer;
                         }
@@ -283,7 +308,13 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
                 OperandType::Const(val) => {
                     if op != val {
                         if last_err.0 < bytes.len() {
-                            last_err = (bytes.len(), InstructionError::InvalidConstant{expected: val.to_string(), found: op.to_string()})
+                            last_err = (
+                                bytes.len(),
+                                InstructionError::InvalidConstant {
+                                    expected: val.to_string(),
+                                    found: op.to_string(),
+                                },
+                            )
                         }
                         continue 'outer;
                     }
@@ -299,12 +330,14 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
             }
             None => {}
         }
+        #[cfg(debug_assertions)]
+        eprintln!("{bytes:?} | {symbols:?}");
         return Ok(InstructionEmission { bytes, symbols });
     }
     Err(last_err.1)
 }
 
-fn parse_label<'a>(line: &'a str) -> Option<(&'a str, &'a str)>{
+fn parse_label<'a>(line: &'a str) -> Option<(&'a str, &'a str)> {
     let line = line.trim_start();
     line.split_once(':')
 }
@@ -319,67 +352,103 @@ pub enum DirectiveError {
     ExpectedString(String),
     SymbolsNotSupported(String),
     UndefinedSymbol(String),
-    SymbolOutOfRange(u64, )
+    SymbolOutOfRange(u64),
 }
 
-fn parse_directive(directive: &str, line: &str, binary: &mut Cursor<Vec<u8>>, symbols: &mut HashMap<String, u64>, errata: &mut Vec<(u64, String, usize)>) -> Result<(), DirectiveError> {
+fn parse_directive(
+    directive: &str,
+    line: &str,
+    binary: &mut Cursor<Vec<u8>>,
+    symbols: &mut HashMap<String, u64>,
+    errata: &mut Vec<(u64, String, usize)>,
+) -> Result<(), DirectiveError> {
     match directive {
         "def" => {
             let mut operands = line.split_whitespace();
-            let sym = operands.next().ok_or(DirectiveError::MissingOperand("symbol".to_string()))?.trim();
-            let string = operands.next().ok_or(DirectiveError::MissingOperand("value".to_string()))?.trim();
-            if let Some(s) = operands.next() {return Err(DirectiveError::ExtraOperand(s.to_string()))};
+            let sym = operands
+                .next()
+                .ok_or(DirectiveError::MissingOperand("symbol".to_string()))?
+                .trim();
+            let string = operands
+                .next()
+                .ok_or(DirectiveError::MissingOperand("value".to_string()))?
+                .trim();
+            if let Some(s) = operands.next() {
+                return Err(DirectiveError::ExtraOperand(s.to_string()));
+            };
 
-            let value = match parse_or_symbol::<u16, i16>(string).map_err(|_| DirectiveError::InvalidNumber(string.to_string()))? {
+            let value = match parse_or_symbol::<u16, i16>(string)
+                .map_err(|_| DirectiveError::InvalidNumber(string.to_string()))?
+            {
                 Value::Literal(x) => x as u64,
                 Value::Symbol(s) => match symbols.get(&s) {
                     Some(x) => *x,
                     None => return Err(DirectiveError::UndefinedSymbol(s)),
-                }
+                },
             };
 
             symbols.insert(sym.to_string(), value);
         }
-        "db" => for string in line.split_whitespace() {
-            let string = string.trim();
-            match parse_or_symbol::<u8, i8>(string).map_err(|_| DirectiveError::InvalidNumber(string.to_string()))? {
-                Value::Literal(value) => {
-                    binary.write_all(&[value]).map_err(DirectiveError::IOError)?;
-                },
-                Value::Symbol(s) => {
-                    errata.push((binary.position(), s, 1));
-                    binary.write_all(&[0]).map_err(DirectiveError::IOError)?;
-                }
-            };
+        "db" => {
+            for string in line.split_whitespace() {
+                let string = string.trim();
+                match parse_or_symbol::<u8, i8>(string)
+                    .map_err(|_| DirectiveError::InvalidNumber(string.to_string()))?
+                {
+                    Value::Literal(value) => {
+                        binary
+                            .write_all(&[value])
+                            .map_err(DirectiveError::IOError)?;
+                    }
+                    Value::Symbol(s) => {
+                        errata.push((binary.position(), s, 1));
+                        binary.write_all(&[0]).map_err(DirectiveError::IOError)?;
+                    }
+                };
+            }
         }
-        "dw" => for string in line.split_whitespace() {
-            let string = string.trim();
-            match parse_or_symbol::<u16, i16>(string).map_err(|_| DirectiveError::InvalidNumber(string.to_string()))? {
-                Value::Literal(value) => {
-                    binary.write_all(&value.to_le_bytes()).map_err(DirectiveError::IOError)?;
-                },
-                Value::Symbol(s) => {
-                    errata.push((binary.position(), s, 2));
-                    binary.write_all(&[0, 0]).map_err(DirectiveError::IOError)?;
-                }
-            };
+        "dw" => {
+            for string in line.split_whitespace() {
+                let string = string.trim();
+                match parse_or_symbol::<u16, i16>(string)
+                    .map_err(|_| DirectiveError::InvalidNumber(string.to_string()))?
+                {
+                    Value::Literal(value) => {
+                        binary
+                            .write_all(&value.to_le_bytes())
+                            .map_err(DirectiveError::IOError)?;
+                    }
+                    Value::Symbol(s) => {
+                        errata.push((binary.position(), s, 2));
+                        binary.write_all(&[0, 0]).map_err(DirectiveError::IOError)?;
+                    }
+                };
+            }
         }
         "org" => {
             let string = line.trim();
-            let value = match parse_or_symbol::<u16, i16>(string).map_err(|_| DirectiveError::InvalidNumber(string.to_string()))? {
+            let value = match parse_or_symbol::<u16, i16>(string)
+                .map_err(|_| DirectiveError::InvalidNumber(string.to_string()))?
+            {
                 Value::Literal(x) => x as u64,
                 Value::Symbol(s) => match symbols.get(&s) {
                     Some(x) => *x,
                     None => return Err(DirectiveError::UndefinedSymbol(s)),
-                }
+                },
             };
             binary.set_position(value - START_ADDRESS);
         }
         "ascii" => {
-            let string = line.trim().strip_prefix('"').and_then(|l| l.strip_suffix('"')).ok_or(DirectiveError::ExpectedString(line.to_string()))?;
-            binary.write_all(string.as_bytes()).map_err(DirectiveError::IOError)?;
+            let string = line
+                .trim()
+                .strip_prefix('"')
+                .and_then(|l| l.strip_suffix('"'))
+                .ok_or(DirectiveError::ExpectedString(line.to_string()))?;
+            binary
+                .write_all(string.as_bytes())
+                .map_err(DirectiveError::IOError)?;
         }
-        _ => return Err(DirectiveError::UnknownDirective(directive.to_string()))
+        _ => return Err(DirectiveError::UnknownDirective(directive.to_string())),
     };
     Ok(())
 }
@@ -390,7 +459,7 @@ pub enum CompileError {
     InstructionError(InstructionError),
     DirectiveError(DirectiveError),
     UndefinedSymbol(String),
-    SymbolOutOfRange(String, usize)
+    SymbolOutOfRange(String, usize),
 }
 
 const START_ADDRESS: u64 = 0x8000;
@@ -410,11 +479,22 @@ pub fn compile(source: impl BufRead) -> Result<Vec<u8>, (Option<usize>, CompileE
         line = line.trim_start().to_string();
         if let Some(l) = line.strip_prefix('.') {
             let (d, l) = l.split_once(' ').unwrap_or((l, ""));
-            parse_directive(d, l, &mut binary, &mut symbols, &mut errata).map_err(|e| (Some(line_no), CompileError::DirectiveError(e)))?
+            parse_directive(d, l, &mut binary, &mut symbols, &mut errata)
+                .map_err(|e| (Some(line_no), CompileError::DirectiveError(e)))?
         } else {
-            let InstructionEmission { bytes: buf, symbols: missing } = parse_instruction(&line).map_err(|e| (Some(line_no), CompileError::InstructionError(e)))?;
-            errata.extend(missing.into_iter().map(|(i, s, n)| (i + binary.position(), s, n)));
-            binary.write_all(&buf).map_err(|e| (Some(line_no), CompileError::IOError(e)))?;
+            let InstructionEmission {
+                bytes: buf,
+                symbols: missing,
+            } = parse_instruction(&line)
+                .map_err(|e| (Some(line_no), CompileError::InstructionError(e)))?;
+            errata.extend(
+                missing
+                    .into_iter()
+                    .map(|(i, s, n)| (i + binary.position(), s, n)),
+            );
+            binary
+                .write_all(&buf)
+                .map_err(|e| (Some(line_no), CompileError::IOError(e)))?;
         }
     }
     for (pos, sym, len) in errata {
@@ -427,7 +507,9 @@ pub fn compile(source: impl BufRead) -> Result<Vec<u8>, (Option<usize>, CompileE
         if bytes[len..].iter().any(|x| !matches!(x, 0x00 | 0xFF)) {
             return Err((None, CompileError::SymbolOutOfRange(sym, 1usize << len)));
         }
-        binary.write_all(bytes).map_err(|e| (None, CompileError::IOError(e)))?;
+        binary
+            .write_all(bytes)
+            .map_err(|e| (None, CompileError::IOError(e)))?;
     }
     Ok(binary.into_inner())
 }
