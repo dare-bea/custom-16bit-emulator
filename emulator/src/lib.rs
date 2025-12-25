@@ -1,32 +1,41 @@
+use cpu::Cpu;
+use memory::Mmu;
+use std::io::Read;
+use std::io::Seek;
+use std::{fmt::Debug, io};
+use utils::flag::Flag;
+
+pub mod cpu;
+pub mod memory;
 pub mod step;
 
-pub struct Cpu {
-    pub a: u16,
-    pub b: u16,
-    pub c: u16,
-    pub d: u16,
-    pub sp: u16,
-    pub pc: u16,
-    pub flags: u16,
-}
+use crate::memory::{Ram, SimpleRom};
 
-impl Default for Cpu {
-    fn default() -> Self {
-        return Self {
-            a: 0,
-            b: 0,
-            c: 0,
-            d: 0,
-            sp: 0x7F00,
-            pc: 0x8000,
-            flags: 0,
-        };
-    }
-}
-
-pub struct Memory;
-
+#[derive(Debug)]
 pub struct Emulator {
     pub cpu: Cpu,
-    pub memory: Memory,
+    pub memory: Mmu,
+}
+
+impl Emulator {
+    pub fn new() -> io::Result<Self> {
+        let mut emu = Self {
+            cpu: Cpu::default(),
+            memory: Mmu::new(Ram::new([0; _]), Box::new(SimpleRom::new([0; _])))?,
+        };
+        emu.reset()?;
+        Ok(emu)
+    }
+
+    pub fn reset(&mut self) -> io::Result<()> {
+        self.cpu = Cpu::new();
+        let mut buf = [0; 2];
+        self.memory.seek(io::SeekFrom::Start(0xFFFE))?;
+        self.memory.read(&mut buf)?;
+        self.cpu.pc = u16::from_le_bytes(buf);
+        if self.cpu.pc == 0 {
+            self.cpu.flags |= Flag::Halt.to_bitmask(); // TODO: Add Display
+        }
+        Ok(())
+    }
 }

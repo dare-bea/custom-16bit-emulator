@@ -10,6 +10,12 @@ pub enum Flag {
     Halt,
 }
 
+impl Flag {
+    pub fn to_bitmask(&self) -> u16 {
+        1u16 << u8::from(self)
+    }
+}
+
 impl FromStr for Flag {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -39,8 +45,8 @@ impl ToString for Flag {
     }
 }
 
-impl From<Flag> for u8 {
-    fn from(value: Flag) -> Self {
+impl From<&Flag> for u8 {
+    fn from(value: &Flag) -> Self {
         match value {
             Flag::Zero => 0,
             Flag::Sign => 1,
@@ -52,9 +58,15 @@ impl From<Flag> for u8 {
     }
 }
 
-impl TryFrom<u8> for Flag {
+impl From<Flag> for u8 {
+    fn from(value: Flag) -> Self {
+        <u8 as From<&Flag>>::from(&value)
+    }
+}
+
+impl TryFrom<&u8> for Flag {
     type Error = ();
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
+    fn try_from(value: &u8) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(Self::Zero),
             1 => Ok(Self::Sign),
@@ -64,6 +76,13 @@ impl TryFrom<u8> for Flag {
             7 => Ok(Flag::Halt),
             _ => Err(()),
         }
+    }
+}
+
+impl TryFrom<u8> for Flag {
+    type Error = ();
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        <Flag as TryFrom<&u8>>::try_from(&value)
     }
 }
 
