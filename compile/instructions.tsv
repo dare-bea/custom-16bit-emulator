@@ -121,8 +121,10 @@ Op	Mnem.	Oper. 1	Oper. 2	Oper. 3	Bytes	Description
 62	WAIT				1	Halt execution until interrupt
 63	RETI				1	Return from interrupt
 64	STF	#imm16			3	Set flags specified by immediate mask
+64	ST{flag}				3	Set flag specified
+64	HALT	!128	!0		3	Halt execution
 65	CLF	#imm16			3	Clear flags specified by immediate mask
-65	HALT	!128	!0		3	Halt execution
+65	CL{flag}				3	Clear flag specified
 66						
 67						
 68	NOT	dst			2	Bitwise NOT of dst register

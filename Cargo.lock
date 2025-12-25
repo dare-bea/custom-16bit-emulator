@@ -3,17 +3,22 @@
 version = 4
 
 [[package]]
-name = "asm"
-version = "0.1.0"
-dependencies = [
- "num",
-]
-
-[[package]]
 name = "autocfg"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
+
+[[package]]
+name = "compile"
+version = "0.1.0"
+dependencies = [
+ "num",
+ "utils",
+]
+
+[[package]]
+name = "emulator"
+version = "0.1.0"
 
 [[package]]
 name = "num"
@@ -87,3 +92,7 @@ checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
  "autocfg",
 ]
+
+[[package]]
+name = "utils"
+version = "0.1.0"

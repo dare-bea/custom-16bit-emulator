@@ -106,3 +106,29 @@ impl From<ConditionCode> for u8 {
         }
     }
 }
+
+impl TryFrom<u8> for ConditionCode {
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0x4 => Ok(ConditionCode::B),
+            0x5 => Ok(ConditionCode::BE),
+            0xC => Ok(ConditionCode::AE),
+            0xD => Ok(ConditionCode::A),
+            0x6 => Ok(ConditionCode::L),
+            0x7 => Ok(ConditionCode::LE),
+            0xE => Ok(ConditionCode::GE),
+            0xF => Ok(ConditionCode::G),
+            0x0 => Ok(ConditionCode::Z),
+            0x1 => Ok(ConditionCode::S),
+            0x2 => Ok(ConditionCode::C),
+            0x3 => Ok(ConditionCode::O),
+            0x8 => Ok(ConditionCode::NZ),
+            0x9 => Ok(ConditionCode::NS),
+            0xA => Ok(ConditionCode::NC),
+            0xB => Ok(ConditionCode::NO),
+            _ => Err(())
+        }
+    }
+}

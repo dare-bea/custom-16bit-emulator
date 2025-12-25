@@ -1,8 +1,5 @@
-mod condition {
-    include!("./src/condition.rs");
-}
-
-use condition::ConditionCode;
+use utils::condition::ConditionCode;
+use utils::flag::Flag;
 use std::env;
 use std::fs;
 use std::path::Path;
@@ -57,16 +54,31 @@ fn main() {
             .collect()
         } else {
             vec![None]
+        } { for flag in if mnem.contains("{flag}") {
+            vec![
+                "ZF", "SF", "CF", "OF", "EIF", "HLT",
+            ]
+            .into_iter()
+            .map(Some)
+            .collect()
+        } else {
+            vec![None]
         } {
             result.push_str("  ");
+            let mut mnem = mnem.to_string();
+            let mut mnem_ops = String::new();
             if let Some(cc) = cc {
-                let cc_mnem = mnem.replace("{cc}", cc);
-                result.push_str(&format!("({opcode}, \"{cc_mnem}\", &["));
+                mnem = mnem.replace("{cc}", cc);
                 let cc_val = u8::from(ConditionCode::from_str(cc).unwrap());
-                result.push_str(&format!("OperandType::Hidden({cc_val}), "));
-            } else {
-                result.push_str(&format!("({opcode}, \"{mnem}\", &["));
+                mnem_ops.push_str(&format!("OperandType::Hidden({cc_val}), "));
             }
+            if let Some(flag) = flag {
+                mnem = mnem.replace("{flag}", flag);
+                for flag_val in (1u16 << u8::from(Flag::from_str(flag).unwrap())).to_le_bytes().into_iter() {
+                    mnem_ops.push_str(&format!("OperandType::Hidden({flag_val}), "));
+                }
+            }
+            result.push_str(&format!("({opcode}, \"{mnem}\", &[{mnem_ops}"));
             if let (Some("OperandType::Register"), Some("OperandType::Register")) =
                 (op1.as_deref(), op2.as_deref())
             {
@@ -86,7 +98,7 @@ fn main() {
                 }
             }
             result.push_str("]),\n");
-        }
+        } }
         result.push_str("\n");
     }
     result.push_str("]");

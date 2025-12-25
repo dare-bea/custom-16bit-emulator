@@ -1,11 +1,8 @@
 use std::{
-    env,
-    fs::File,
-    io::{BufReader, Write},
-    process,
+    env, fs::File, io::{BufReader, Write}, process
 };
 
-use asm::compile::compile;
+use compile::compile;
 
 fn main() {
     if let Err(err) = run() {
