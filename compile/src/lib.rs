@@ -334,7 +334,8 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
 
 fn parse_label(line: &str) -> Option<(&str, &str)> {
     let line = line.trim_start();
-    line.split_once(':')
+    if line.starts_with('.') {None}
+    else {line.split_once(':')}
 }
 
 #[derive(Debug)]

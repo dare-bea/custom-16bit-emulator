@@ -37,6 +37,18 @@ impl Mmu {
             self.read_byte(pos.wrapping_add(1))?,
         ]))
     }
+
+    pub fn write_byte(&mut self, pos: u16, value: u8) -> Result<()> {
+        let buf = value.to_le_bytes();
+        self.0.seek(std::io::SeekFrom::Start(pos as u64))?;
+        self.0.write_all(&buf)
+    }
+
+    pub fn write_word(&mut self, pos: u16, value: u16) -> Result<()> {
+        let buf = value.to_le_bytes();
+        self.write_byte(pos, buf[0])?;
+        self.write_byte(pos.wrapping_add(1), buf[1])
+    }
 }
 
 impl Deref for Mmu {

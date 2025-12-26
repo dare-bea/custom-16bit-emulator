@@ -43,4 +43,15 @@ impl Emulator {
         self.cpu.pc = self.cpu.pc.wrapping_add(2);
         Ok(value)
     }
+
+    pub fn push(&mut self, value: u16) -> io::Result<()> {
+        self.cpu.sp = self.cpu.sp.wrapping_sub(2);
+        self.memory.write_word(self.cpu.sp, value)
+    }
+    
+    pub fn pop(&mut self) -> io::Result<u16> {
+        let result = self.memory.read_word(self.cpu.sp);
+        self.cpu.sp = self.cpu.sp.wrapping_add(2);
+        result
+    }
 }

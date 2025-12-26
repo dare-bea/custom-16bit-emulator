@@ -29,12 +29,12 @@ Op	Mnem.	Oper. 1	Oper. 2	Oper. 3	Bytes	Description
 11	ST	addr	SP		3	Store byte from A into memory at [addr + SP]
 11	ST	!0	!0	SP	3	Store byte from A into memory at [SP]
 12						
-13	STS	src	dst		2	Store byte from src into memory addressed by dst register
+13	STS	dst	src		2	Store byte from src into memory addressed by dst register
 14	STW	addr			3	Store word from A into memory at [addr]
 15	STW	addr	SP		3	Store word from A into memory at [addr + SP]
 15	STW	!0	!0	SP	3	Store word from A into memory at [SP]
 16						
-17	STSW	src	dst		2	Store word from src into memory addressed by dst register
+17	STSW	dst	src		2	Store word from src into memory addressed by dst register
 18	ST	addr	A		3	Store byte from A into memory at [addr + A]
 18	ST	!0	!0	A	3	Store byte from A into memory at [A]
 19	ST	addr	B		3	Store byte from A into memory at [addr + B]

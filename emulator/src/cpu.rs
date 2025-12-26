@@ -1,3 +1,5 @@
+use utils::register::Register;
+
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Cpu {
     pub a: u16,
@@ -26,5 +28,31 @@ impl Default for Cpu {
 impl Cpu {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn register(&self, reg: Register) -> u16 {
+        use Register::*;
+        match reg {
+            A => self.a,
+            B => self.b,
+            C => self.c,
+            D => self.d,
+            Sp => self.sp,
+            Pc => self.pc,
+            Flags => self.flags,
+        }
+    }
+
+    pub fn register_mut(&mut self, reg: Register) -> &mut u16 {
+        use Register::*;
+        match reg {
+            A => &mut self.a,
+            B => &mut self.b,
+            C => &mut self.c,
+            D => &mut self.d,
+            Sp => &mut self.sp,
+            Pc => &mut self.pc,
+            Flags => &mut self.flags,
+        }
     }
 }

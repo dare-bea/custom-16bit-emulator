@@ -85,7 +85,7 @@ impl TryFrom<u8> for Flag {
     }
 }
 
-pub fn set_flag<F>(status: &mut u8, flag: F, value: bool)
+pub fn set_flag<F>(status: &mut u16, flag: F, value: bool)
 where
     u8: From<F>,
 {
@@ -96,7 +96,7 @@ where
     }
 }
 
-pub fn get_flag<F>(status: u8, flag: F) -> bool
+pub fn get_flag<F>(status: u16, flag: F) -> bool
 where
     u8: From<F>,
 {

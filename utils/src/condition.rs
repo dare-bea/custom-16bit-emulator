@@ -1,5 +1,7 @@
 use std::{fmt::Display, str::FromStr};
 
+use crate::flag::{Flag, get_flag};
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
 pub enum ConditionCode {
     B,
@@ -129,6 +131,39 @@ impl TryFrom<u8> for ConditionCode {
             0xA => Ok(ConditionCode::NC),
             0xB => Ok(ConditionCode::NO),
             _ => Err(()),
+        }
+    }
+}
+
+impl ConditionCode {
+    pub fn meets(&self, flags: u16) -> bool {
+        let z = get_flag(flags, Flag::Zero);
+        let s = get_flag(flags, Flag::Sign);
+        let c = get_flag(flags, Flag::Carry);
+        let o = get_flag(flags, Flag::Overflow);
+
+        match self {
+            // unsigned
+            ConditionCode::B  => c,              // below
+            ConditionCode::BE => c || z,          // below or equal
+            ConditionCode::AE => !c,              // above or equal
+            ConditionCode::A  => !c && !z,        // above
+
+            // signed
+            ConditionCode::L  => s != o,          // less
+            ConditionCode::LE => z || (s != o),   // less or equal
+            ConditionCode::GE => s == o,          // greater or equal
+            ConditionCode::G  => !z && (s == o),  // greater
+
+            // direct flag tests
+            ConditionCode::Z  => z,
+            ConditionCode::NZ => !z,
+            ConditionCode::S  => s,
+            ConditionCode::NS => !s,
+            ConditionCode::C  => c,
+            ConditionCode::NC => !c,
+            ConditionCode::O  => o,
+            ConditionCode::NO => !o,
         }
     }
 }
