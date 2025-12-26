@@ -33,14 +33,18 @@ impl FromStr for Flag {
 
 impl Display for Flag {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Self::Zero => "ZF",
-            Self::Sign => "SF",
-            Self::Carry => "CF",
-            Self::Overflow => "OF",
-            Self::EnableInterrupt => "EIF",
-            Self::Halt => "HLT",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Zero => "ZF",
+                Self::Sign => "SF",
+                Self::Carry => "CF",
+                Self::Overflow => "OF",
+                Self::EnableInterrupt => "EIF",
+                Self::Halt => "HLT",
+            }
+        )
     }
 }
 

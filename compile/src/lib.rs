@@ -1,5 +1,8 @@
 use std::{
-    collections::HashMap, fmt::Display, io::{self, BufRead, Cursor, Write}, str::FromStr
+    collections::HashMap,
+    fmt::Display,
+    io::{self, BufRead, Cursor, Write},
+    str::FromStr,
 };
 
 use num::cast::AsPrimitive;
@@ -156,16 +159,20 @@ enum OperandType {
 
 impl Display for OperandType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Self::Address => String::from("addr"),
-            Self::Offset => String::from("rel"),
-            Self::Byte => String::from("#imm8"),
-            Self::Word => String::from("#imm16"),
-            Self::Register => String::from("reg"),
-            Self::RegisterPair => String::from("dst, src"),
-            Self::Const(s) => String::from(*s),
-            Self::Hidden(x) => format!("({x})"),
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Address => String::from("addr"),
+                Self::Offset => String::from("rel"),
+                Self::Byte => String::from("#imm8"),
+                Self::Word => String::from("#imm16"),
+                Self::Register => String::from("reg"),
+                Self::RegisterPair => String::from("dst, src"),
+                Self::Const(s) => String::from(*s),
+                Self::Hidden(x) => format!("({x})"),
+            }
+        )
     }
 }
 
@@ -334,8 +341,11 @@ fn parse_instruction(line: &str) -> Result<InstructionEmission, InstructionError
 
 fn parse_label(line: &str) -> Option<(&str, &str)> {
     let line = line.trim_start();
-    if line.starts_with('.') {None}
-    else {line.split_once(':')}
+    if line.starts_with('.') {
+        None
+    } else {
+        line.split_once(':')
+    }
 }
 
 #[derive(Debug)]

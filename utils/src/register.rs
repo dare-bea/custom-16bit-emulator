@@ -1,7 +1,13 @@
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
 #[repr(u8)]
 pub enum Register {
-    A = 0, B, C, D, Sp = 5, Pc, Flags,
+    A = 0,
+    B,
+    C,
+    D,
+    Sp = 5,
+    Pc,
+    Flags,
 }
 
 impl From<&Register> for u8 {
@@ -37,7 +43,7 @@ impl TryFrom<&u8> for Register {
             5 => Sp,
             6 => Pc,
             7 => Flags,
-            _ => return Err(())
+            _ => return Err(()),
         })
     }
 }

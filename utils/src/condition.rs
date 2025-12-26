@@ -65,24 +65,28 @@ impl FromStr for ConditionCode {
 
 impl Display for ConditionCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            ConditionCode::B => "B",
-            ConditionCode::BE => "BE",
-            ConditionCode::AE => "AE",
-            ConditionCode::A => "A",
-            ConditionCode::L => "L",
-            ConditionCode::LE => "LE",
-            ConditionCode::GE => "GE",
-            ConditionCode::G => "G",
-            ConditionCode::Z => "Z",
-            ConditionCode::S => "S",
-            ConditionCode::C => "C",
-            ConditionCode::O => "O",
-            ConditionCode::NZ => "NZ",
-            ConditionCode::NS => "NS",
-            ConditionCode::NC => "NC",
-            ConditionCode::NO => "NO",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                ConditionCode::B => "B",
+                ConditionCode::BE => "BE",
+                ConditionCode::AE => "AE",
+                ConditionCode::A => "A",
+                ConditionCode::L => "L",
+                ConditionCode::LE => "LE",
+                ConditionCode::GE => "GE",
+                ConditionCode::G => "G",
+                ConditionCode::Z => "Z",
+                ConditionCode::S => "S",
+                ConditionCode::C => "C",
+                ConditionCode::O => "O",
+                ConditionCode::NZ => "NZ",
+                ConditionCode::NS => "NS",
+                ConditionCode::NC => "NC",
+                ConditionCode::NO => "NO",
+            }
+        )
     }
 }
 
@@ -144,25 +148,25 @@ impl ConditionCode {
 
         match self {
             // unsigned
-            ConditionCode::B  => c,              // below
-            ConditionCode::BE => c || z,          // below or equal
-            ConditionCode::AE => !c,              // above or equal
-            ConditionCode::A  => !c && !z,        // above
+            ConditionCode::B => c,        // below
+            ConditionCode::BE => c || z,  // below or equal
+            ConditionCode::AE => !c,      // above or equal
+            ConditionCode::A => !c && !z, // above
 
             // signed
-            ConditionCode::L  => s != o,          // less
-            ConditionCode::LE => z || (s != o),   // less or equal
-            ConditionCode::GE => s == o,          // greater or equal
-            ConditionCode::G  => !z && (s == o),  // greater
+            ConditionCode::L => s != o,         // less
+            ConditionCode::LE => z || (s != o), // less or equal
+            ConditionCode::GE => s == o,        // greater or equal
+            ConditionCode::G => !z && (s == o), // greater
 
             // direct flag tests
-            ConditionCode::Z  => z,
+            ConditionCode::Z => z,
             ConditionCode::NZ => !z,
-            ConditionCode::S  => s,
+            ConditionCode::S => s,
             ConditionCode::NS => !s,
-            ConditionCode::C  => c,
+            ConditionCode::C => c,
             ConditionCode::NC => !c,
-            ConditionCode::O  => o,
+            ConditionCode::O => o,
             ConditionCode::NO => !o,
         }
     }
