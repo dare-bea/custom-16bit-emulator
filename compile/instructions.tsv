@@ -116,8 +116,8 @@ Op	Mnem.	Oper. 1	Oper. 2	Oper. 3	Bytes	Description
 5D						
 5E						
 5F						
-60	CIRQ	addr			3	Clear interrupt request at addr
-61	SIRQ	addr			3	Set interrupt request at addr
+60	CIRQ	#imm8			3	Clear interrupt request at addr
+61	SIRQ	#imm8			3	Set interrupt request at addr
 62	WAIT				1	Halt execution until interrupt
 63	RETI				1	Return from interrupt
 64	STF	#imm16			3	Set flags specified by immediate mask

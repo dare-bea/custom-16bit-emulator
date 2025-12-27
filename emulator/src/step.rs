@@ -32,9 +32,8 @@ impl Emulator {
                 // LDS dst, src
                 let (dst, src) = Register::pair_from(&self.next_byte()?)
                     .map_err(EmulationError::RegisterIndexError)?;
-                *self.cpu.register_mut(dst) = (self.memory.read_byte(self.cpu.register(src))?
-                    as u16)
-                    .wrapping_add(self.cpu.sp);
+                *self.cpu.register_mut(dst) = self.memory.read_byte(self.cpu.register(src))?
+                    as u16;
             }
             0x04 => {
                 // LDW addr
@@ -51,20 +50,20 @@ impl Emulator {
                 let (dst, src) = Register::pair_from(&self.next_byte()?)
                     .map_err(EmulationError::RegisterIndexError)?;
                 *self.cpu.register_mut(dst) =
-                    (self.memory.read_word(self.cpu.register(src))?).wrapping_add(self.cpu.sp);
+                    self.memory.read_word(self.cpu.register(src))?;
             }
             op @ 0x08..=0x0B => {
                 // LD addr, reg
                 let addr: u16 = self
                     .next_word()?
-                    .wrapping_add(self.cpu.register(Register::try_from(op & 0x3).unwrap()));
+                    .wrapping_add(self.cpu.register(Register::try_from(op & 0x3).map_err(EmulationError::RegisterIndexError)?));
                 self.cpu.a = self.memory.read_byte(addr)? as u16;
             }
             op @ 0x0C..=0x0F => {
                 // LDW addr, reg
                 let addr: u16 = self
                     .next_word()?
-                    .wrapping_add(self.cpu.register(Register::try_from(op & 0x3).unwrap()));
+                    .wrapping_add(self.cpu.register(Register::try_from(op & 0x3).map_err(EmulationError::RegisterIndexError)?));
                 self.cpu.a = self.memory.read_word(addr)?;
             }
             0x10 => {
@@ -105,24 +104,24 @@ impl Emulator {
                 // ST addr, reg
                 let addr: u16 = self
                     .next_word()?
-                    .wrapping_add(self.cpu.register(Register::try_from(op & 0x3).unwrap()));
+                    .wrapping_add(self.cpu.register(Register::try_from(op & 0x3).map_err(EmulationError::RegisterIndexError)?));
                 self.memory.write_byte(addr, self.cpu.a as u8)?;
             }
             op @ 0x1C..=0x1F => {
                 // STW addr, reg
                 let addr: u16 = self
                     .next_word()?
-                    .wrapping_add(self.cpu.register(Register::try_from(op & 0x3).unwrap()));
+                    .wrapping_add(self.cpu.register(Register::try_from(op & 0x3).map_err(EmulationError::RegisterIndexError)?));
                 self.memory.write_word(addr, self.cpu.a)?;
             }
             op @ 0x20..=0x23 => {
                 // LDI addr, #imm8
-                *self.cpu.register_mut(Register::try_from(op & 0x3).unwrap()) =
+                *self.cpu.register_mut(Register::try_from(op & 0x3).map_err(EmulationError::RegisterIndexError)?) =
                     self.next_byte()? as u16;
             }
             op @ 0x24..=0x27 => {
                 // LDI addr, #imm16
-                *self.cpu.register_mut(Register::try_from(op & 0x3).unwrap()) = self.next_word()?;
+                *self.cpu.register_mut(Register::try_from(op & 0x3).map_err(EmulationError::RegisterIndexError)?) = self.next_word()?;
             }
             op @ (0x28 | 0x30 | 0x38) => {
                 // JMP rel, PC
@@ -214,7 +213,60 @@ impl Emulator {
                 };
                 self.cpu.pc = self
                     .next_word()?
-                    .wrapping_add(self.cpu.register(Register::try_from(op & 0x3).unwrap()));
+                    .wrapping_add(self.cpu.register(Register::try_from(op & 0x3).map_err(EmulationError::RegisterIndexError)?));
+            }
+            op @ 0x40..=0x47 => {
+                // PUSH reg
+                self.push(self.cpu.register(Register::try_from(op & 0x3).map_err(EmulationError::RegisterIndexError)?))?;
+            }
+            op @ 0x48..=0x4F => {
+                // POP reg
+                *self.cpu.register_mut(Register::try_from(op & 0x3).map_err(EmulationError::RegisterIndexError)?) = self.pop()?;
+            }
+            0x50 => {
+                // MOVS dst, src
+                let (dst, src) = Register::pair_from(&self.next_byte()?)
+                    .map_err(EmulationError::RegisterIndexError)?;
+                let value = self.memory.read_byte(self.cpu.register(src))?;
+                self.memory
+                    .write_byte(self.cpu.register(dst), value)?;
+            }
+            0x51 => { /* NOP */ }
+            0x60 => {
+                // CIRQ #imm8
+                let port = self.next_byte()?;
+                self.ports.clear_irq(port);
+            }
+            0x61 => {
+                // SIRQ #imm8
+                let port = self.next_byte()?;
+                self.ports.set_irq(port);
+            }
+            0x62 => {
+                // WAIT
+                #[allow(unreachable_code)]
+                if let Some(port) = self.ports.check_interrupt() {
+                    self.interrupt(port)?;
+                } else {
+                    self.cpu.pc = self.cpu.pc.wrapping_sub(1);
+                }
+            }
+            0x63 => {
+                // RETI
+                self.cpu.d = self.pop()?;
+                self.cpu.c = self.pop()?;
+                self.cpu.b = self.pop()?;
+                self.cpu.a = self.pop()?;
+                self.cpu.flags = self.pop()?;
+                self.cpu.pc = self.pop()?;
+            }
+            0x64 => {
+                // STF #imm16
+                self.cpu.flags |= self.next_word()?;
+            }
+            0x65 => {
+                // CLF #imm16
+                self.cpu.flags &= !self.next_word()?;
             }
             op => return Err(EmulationError::InvalidOpcode(op)),
         };

@@ -35,5 +35,5 @@ An emulator for a custom 16-bit console.
 - 0x7F00..0x7FFF: Port In/Out
     - 0x7F00: Console In/Out
 - 0x8000..0xFFFF: ROM
-    - 0xFFE0..0xFFFF: Interrupt Vector Table
+    - 0xFF00..0xFFFF: Interrupt Vector Table
         - 0xFFFE: Reset Vector

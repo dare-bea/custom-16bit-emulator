@@ -1,9 +1,7 @@
 //! A reader/writer/seekable type that chains two underlying streams sequentially.
-use std::{
-    fmt,
-    io::{self, Read, Seek, SeekFrom, Write},
-};
+use std::io::{self, Read, Seek, SeekFrom, Write};
 
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct ChainedIO<A, B> {
     first: A,
     second: B,
@@ -132,37 +130,5 @@ where
 
         self.pos = new_pos as u64;
         Ok(self.pos)
-    }
-}
-
-impl<A, B> fmt::Debug for ChainedIO<A, B>
-where
-    A: fmt::Debug,
-    B: fmt::Debug,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ChainedIO")
-            .field("first", &self.first)
-            .field("second", &self.second)
-            .field("len_first", &self.len_first)
-            .field("len_second", &self.len_second)
-            .field("pos", &self.pos)
-            .finish()
-    }
-}
-
-impl<A, B> Default for ChainedIO<A, B>
-where
-    A: Default + Read + Write + Seek,
-    B: Default + Read + Write + Seek,
-{
-    fn default() -> Self {
-        Self {
-            first: A::default(),
-            second: B::default(),
-            len_first: 0,
-            len_second: 0,
-            pos: 0,
-        }
     }
 }
